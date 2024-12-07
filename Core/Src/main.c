@@ -22,6 +22,10 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 
+#include "key_reader.h"
+#include "lcd1602a.h"
+#include "player.h"
+
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -105,6 +109,13 @@ int main(void) {
     MX_ADC1_Init();
     /* USER CODE BEGIN 2 */
 
+    lcd_1602a_init();
+    lcd_1602a_write_text("ped v1");
+
+    uint32_t pstate = 0;
+    uint32_t nstate = 0;
+    player_init();
+
     /* USER CODE END 2 */
 
     /* Infinite loop */
@@ -113,6 +124,10 @@ int main(void) {
         /* USER CODE END WHILE */
 
         /* USER CODE BEGIN 3 */
+        nstate = read_keys();
+        player_routine(pstate, nstate);
+        pstate = nstate;
+        // HAL_I2S_Transmit(&hi2s1, sample_D2_22kHz_corpo, SAMPLE_D2_22KHZ_CORPO_L, 10000);
     }
     /* USER CODE END 3 */
 }
@@ -196,7 +211,7 @@ static void MX_ADC1_Init(void) {
 
     /** Configure for the selected ADC regular channel its corresponding rank in the sequencer and its sample time.
   */
-    sConfig.Channel      = ADC_CHANNEL_0;
+    sConfig.Channel      = ADC_CHANNEL_1;
     sConfig.Rank         = 1;
     sConfig.SamplingTime = ADC_SAMPLETIME_3CYCLES;
     if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK) {
@@ -343,13 +358,11 @@ static void MX_GPIO_Init(void) {
     HAL_GPIO_WritePin(GPIOC, LED1_Pin | LED2_Pin, GPIO_PIN_RESET);
 
     /*Configure GPIO pin Output Level */
-    HAL_GPIO_WritePin(
-        GPIOB,
-        LCD_RS_Pin | LCD_ENABLE_Pin | LCD_D0_Pin | LCD_D1_Pin | LCD_D2_Pin | LCD_D3_Pin | LCD_D4_Pin | LCD_D5_Pin | LCD_C3_Pin,
-        GPIO_PIN_RESET);
+    HAL_GPIO_WritePin(GPIOA, MUX_C3_Pin | MUX_C2_Pin | MUX_C1_Pin | LCD_D6_Pin | LCD_D7_Pin | MUX_C0_Pin, GPIO_PIN_RESET);
 
     /*Configure GPIO pin Output Level */
-    HAL_GPIO_WritePin(GPIOA, LCD_D6_Pin | LCD_D7_Pin | MUX_C0_Pin | LCD_C1_Pin | LCD_C2_Pin, GPIO_PIN_RESET);
+    HAL_GPIO_WritePin(
+        GPIOB, LCD_RS_Pin | LCD_ENABLE_Pin | LCD_D0_Pin | LCD_D1_Pin | LCD_D2_Pin | LCD_D3_Pin | LCD_D4_Pin | LCD_D5_Pin, GPIO_PIN_RESET);
 
     /*Configure GPIO pins : LED1_Pin LED2_Pin */
     GPIO_InitStruct.Pin   = LED1_Pin | LED2_Pin;
@@ -358,34 +371,32 @@ static void MX_GPIO_Init(void) {
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
     HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
-    /*Configure GPIO pin : USER_SWITCH_Pin */
-    GPIO_InitStruct.Pin  = USER_SWITCH_Pin;
+    /*Configure GPIO pin : USER_BUTTON_Pin */
+    GPIO_InitStruct.Pin  = USER_BUTTON_Pin;
     GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
     GPIO_InitStruct.Pull = GPIO_NOPULL;
-    HAL_GPIO_Init(USER_SWITCH_GPIO_Port, &GPIO_InitStruct);
+    HAL_GPIO_Init(USER_BUTTON_GPIO_Port, &GPIO_InitStruct);
 
-    /*Configure GPIO pins : LCD_RS_Pin LCD_ENABLE_Pin LCD_D0_Pin LCD_D1_Pin
-                           LCD_D2_Pin LCD_D3_Pin LCD_D4_Pin LCD_D5_Pin
-                           LCD_C3_Pin */
-    GPIO_InitStruct.Pin = LCD_RS_Pin | LCD_ENABLE_Pin | LCD_D0_Pin | LCD_D1_Pin | LCD_D2_Pin | LCD_D3_Pin | LCD_D4_Pin | LCD_D5_Pin |
-                          LCD_C3_Pin;
-    GPIO_InitStruct.Mode  = GPIO_MODE_OUTPUT_PP;
-    GPIO_InitStruct.Pull  = GPIO_NOPULL;
-    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-    HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
-
-    /*Configure GPIO pins : LCD_D6_Pin LCD_D7_Pin MUX_C0_Pin LCD_C1_Pin
-                           LCD_C2_Pin */
-    GPIO_InitStruct.Pin   = LCD_D6_Pin | LCD_D7_Pin | MUX_C0_Pin | LCD_C1_Pin | LCD_C2_Pin;
+    /*Configure GPIO pins : MUX_C3_Pin MUX_C2_Pin MUX_C1_Pin LCD_D6_Pin
+                           LCD_D7_Pin MUX_C0_Pin */
+    GPIO_InitStruct.Pin   = MUX_C3_Pin | MUX_C2_Pin | MUX_C1_Pin | LCD_D6_Pin | LCD_D7_Pin | MUX_C0_Pin;
     GPIO_InitStruct.Mode  = GPIO_MODE_OUTPUT_PP;
     GPIO_InitStruct.Pull  = GPIO_NOPULL;
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
     HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
+    /*Configure GPIO pins : LCD_RS_Pin LCD_ENABLE_Pin LCD_D0_Pin LCD_D1_Pin
+                           LCD_D2_Pin LCD_D3_Pin LCD_D4_Pin LCD_D5_Pin */
+    GPIO_InitStruct.Pin   = LCD_RS_Pin | LCD_ENABLE_Pin | LCD_D0_Pin | LCD_D1_Pin | LCD_D2_Pin | LCD_D3_Pin | LCD_D4_Pin | LCD_D5_Pin;
+    GPIO_InitStruct.Mode  = GPIO_MODE_OUTPUT_PP;
+    GPIO_InitStruct.Pull  = GPIO_NOPULL;
+    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+    HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+
     /*Configure GPIO pins : MUX_D0_Pin MUX_D1_Pin MUX_D2_Pin MUX_D3_Pin */
     GPIO_InitStruct.Pin  = MUX_D0_Pin | MUX_D1_Pin | MUX_D2_Pin | MUX_D3_Pin;
     GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-    GPIO_InitStruct.Pull = GPIO_NOPULL;
+    GPIO_InitStruct.Pull = GPIO_PULLUP;
     HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
     /* USER CODE BEGIN MX_GPIO_Init_2 */

@@ -54,6 +54,8 @@ void Error_Handler(void);
 
 /* USER CODE BEGIN EFP */
 
+extern I2S_HandleTypeDef hi2s1;
+
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
@@ -61,8 +63,14 @@ void Error_Handler(void);
 #define LED1_GPIO_Port        GPIOC
 #define LED2_Pin              GPIO_PIN_14
 #define LED2_GPIO_Port        GPIOC
-#define USER_SWITCH_Pin       GPIO_PIN_15
-#define USER_SWITCH_GPIO_Port GPIOC
+#define USER_BUTTON_Pin       GPIO_PIN_0
+#define USER_BUTTON_GPIO_Port GPIOA
+#define MUX_C3_Pin            GPIO_PIN_5
+#define MUX_C3_GPIO_Port      GPIOA
+#define MUX_C2_Pin            GPIO_PIN_6
+#define MUX_C2_GPIO_Port      GPIOA
+#define MUX_C1_Pin            GPIO_PIN_7
+#define MUX_C1_GPIO_Port      GPIOA
 #define LCD_RS_Pin            GPIO_PIN_0
 #define LCD_RS_GPIO_Port      GPIOB
 #define LCD_ENABLE_Pin        GPIO_PIN_1
@@ -85,12 +93,6 @@ void Error_Handler(void);
 #define LCD_D7_GPIO_Port      GPIOA
 #define MUX_C0_Pin            GPIO_PIN_10
 #define MUX_C0_GPIO_Port      GPIOA
-#define LCD_C1_Pin            GPIO_PIN_13
-#define LCD_C1_GPIO_Port      GPIOA
-#define LCD_C2_Pin            GPIO_PIN_14
-#define LCD_C2_GPIO_Port      GPIOA
-#define LCD_C3_Pin            GPIO_PIN_4
-#define LCD_C3_GPIO_Port      GPIOB
 #define MUX_D0_Pin            GPIO_PIN_6
 #define MUX_D0_GPIO_Port      GPIOB
 #define MUX_D1_Pin            GPIO_PIN_7

@@ -10,7 +10,7 @@ target: pedalinator
 # Can be C or C++
 language: C
 
-optimization: Og
+optimization: O0
 
 # MCU settings
 targetMCU: stm32f4x
@@ -80,6 +80,7 @@ includeDirectories:
   - Src/**
   - Core/Src/**
   - Core/Lib/**
+  - Drivers/CMSIS/DSP/Include
 
 
 # Files that should be included in the compilation.
@@ -91,6 +92,7 @@ sourceFiles:
   - Src/**
   - Core/Src/**
   - Core/Lib/**
+  - Drivers/CMSIS/DSP/Source/BasicMathFunctions/arm_add_q15.c
 
 
 # When no makefile is present it will show a warning pop-up.
