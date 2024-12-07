@@ -1,9 +1,9 @@
 #include "player.h"
-#include "lcd1602a.h"
-#include "samples/sample_22kHz_D2.h"
 
 #include "arm_math.h"
+#include "lcd1602a.h"
 #include "main.h"
+#include "samples/sample_22kHz_D2.h"
 
 #include <math.h>
 #include <stdio.h>
@@ -157,7 +157,8 @@ size_t corpo_pitch_shifting(int16_t *curr, size_t curr_max_len, int16_t *base, s
     size_t L          = (size_t)((double)base_len / ratio);
     if (curr_max_len < L) {
         // TODO: better error handling
-        Error_Handler();
+        L = curr_max_len;
+        // Error_Handler();
     }
     // TODO: try different interpolation functions from the arm_math.h library
     // arm_linear_interp_instance_f32 config;
@@ -253,7 +254,7 @@ size_t compose_note(unsigned int nstate, unsigned int pstate, int16_t *current_n
 
 #else
 
-    for (size_t isem = 0; isem < 12; isem++) {
+    for (size_t isem = 0; isem < 15; isem++) {
         /* 
             As it should be...
             if ((nstate >> isem) & 1) {

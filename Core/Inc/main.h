@@ -61,8 +61,6 @@ extern I2S_HandleTypeDef hi2s1;
 /* Private defines -----------------------------------------------------------*/
 #define LED1_Pin              GPIO_PIN_13
 #define LED1_GPIO_Port        GPIOC
-#define LED2_Pin              GPIO_PIN_14
-#define LED2_GPIO_Port        GPIOC
 #define USER_BUTTON_Pin       GPIO_PIN_0
 #define USER_BUTTON_GPIO_Port GPIOA
 #define MUX_C3_Pin            GPIO_PIN_5
@@ -97,10 +95,6 @@ extern I2S_HandleTypeDef hi2s1;
 #define MUX_D0_GPIO_Port      GPIOB
 #define MUX_D1_Pin            GPIO_PIN_7
 #define MUX_D1_GPIO_Port      GPIOB
-#define MUX_D2_Pin            GPIO_PIN_8
-#define MUX_D2_GPIO_Port      GPIOB
-#define MUX_D3_Pin            GPIO_PIN_9
-#define MUX_D3_GPIO_Port      GPIOB
 
 /* USER CODE BEGIN Private defines */
 

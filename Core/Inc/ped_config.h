@@ -5,7 +5,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 
-#define MAX_NOTE_LEN (10000U)
+#define MAX_NOTE_LEN (1000U)
 // #define PED_PHASE_VOCODER_ENABLED
 
 typedef enum {
