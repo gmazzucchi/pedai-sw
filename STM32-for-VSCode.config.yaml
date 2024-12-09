@@ -6,7 +6,7 @@
 # - entry_2
 
 # The project name
-target: pedalinator
+target: pedai-sw
 # Can be C or C++
 language: C
 

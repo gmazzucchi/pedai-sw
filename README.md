@@ -5,6 +5,6 @@ Memory region         Used Size  Region Size  %age Used
            FLASH:       52380 B       512 KB      9.99%
 
    text    data     bss     dec     hex filename
-  11692   40688    3168   55548    d8fc build/pedalinator.elf
+  11692   40688    3168   55548    d8fc build/pedai-sw.elf
 
 
