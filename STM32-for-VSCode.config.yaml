@@ -76,10 +76,11 @@ excludes:
 includeDirectories: 
   - Inc/**
   - Core/Inc/**
-  - Core/Lib/**
+  - Core/Lib/tinyusb/src
+  - Core/Lib/tinyusb/hw
+  - Core/Lib/tinyusb/hw/bsp
   - Src/**
   - Core/Src/**
-  - Core/Lib/**
   - Drivers/CMSIS/DSP/Include
 
 
@@ -91,7 +92,7 @@ includeDirectories:
 sourceFiles:  
   - Src/**
   - Core/Src/**
-  - Core/Lib/**
+  - Core/Lib/tinyusb/src/**
   - Drivers/CMSIS/DSP/Source/TransformFunctions/TransformFunctions.c
   - Drivers/CMSIS/DSP/Source/BasicMathFunctions/arm_add_q15.c
   - Drivers/CMSIS/DSP/Source/BasicMathFunctions/arm_shift_q15.c

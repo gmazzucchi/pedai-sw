@@ -5,16 +5,20 @@
 #include <stdint.h>
 #include <stdlib.h>
 
-#define ENABLED  (1U)
-#define DISABLED (0U)
+#define PED_ENABLED  (1U)
+#define PED_DISABLED (0U)
 
 #define MAX_NOTE_LEN (2048U)
 
-#define PED_PHASE_VOCODER ENABLED
+#define SOUND_PLAYER PED_DISABLED
 
-#define SCALE_AMPLITUDE_AFTER_ADDING DISABLED
+#define PED_USB_CDC_CLASS PED_ENABLED
 
-#define HARDWARE_KEYS_ENABLED DISABLED
+#define PED_PHASE_VOCODER PED_ENABLED
+
+#define SCALE_AMPLITUDE_AFTER_ADDING PED_DISABLED
+
+#define HARDWARE_KEYS_ENABLED PED_DISABLED
 
 typedef enum {
     bitnote_c1 = 0,

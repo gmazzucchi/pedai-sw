@@ -25,6 +25,7 @@
 #include "key_reader.h"
 #include "lcd1602a.h"
 #include "player.h"
+#include "tusb.h"
 
 #include <stdio.h>
 
@@ -75,6 +76,18 @@ static void MX_ADC1_Init(void);
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 
+uint32_t prevtime = 0;
+
+void cdc_example_keep_alive_task(void) {
+    char log_str[BUFSIZ];
+    snprintf(log_str, BUFSIZ, "I am alive at time %lu, in Gigi's house\n\n", HAL_GetTick());
+    if (tud_cdc_write_available() && (HAL_GetTick() - prevtime) > 6000) {
+        prevtime = HAL_GetTick();
+        tud_cdc_write_str(log_str);
+        tud_cdc_write_flush();
+    }
+}
+
 /* USER CODE END 0 */
 
 /**
@@ -111,12 +124,20 @@ int main(void) {
     MX_ADC1_Init();
     /* USER CODE BEGIN 2 */
 
+#if PED_USB_CDC_CLASS == PED_ENABLED
+    tusb_rhport_init_t dev_init = {.role = TUSB_ROLE_DEVICE, .speed = TUSB_SPEED_AUTO};
+    tusb_init(BOARD_TUD_RHPORT, &dev_init);
+#endif
+
     lcd_1602a_init();
     lcd_1602a_write_text("INIT");
 
     uint32_t pstate = 0;
     uint32_t nstate = 0;
+
+#if SOUND_PLAYER == PED_ENABLED
     player_init();
+#endif
 
     const bitnotes_t melody[] = {
         (1 << bitnote_c1),
@@ -146,7 +167,12 @@ int main(void) {
 
         /* USER CODE BEGIN 3 */
 
-#if HARDWARE_KEYS_ENABLED == ENABLED
+#if PED_USB_CDC_CLASS == PED_ENABLED
+        tud_task();
+        cdc_example_keep_alive_task();
+#endif
+
+#if HARDWARE_KEYS_ENABLED == PED_ENABLED
         nstate = read_keys();
 #else
         if (HAL_GetTick() - last_changed_note > note_duration_ms) {
@@ -160,7 +186,9 @@ int main(void) {
         // play only one note in blocking mode
         // HAL_I2S_Transmit(&hi2s1, (uint16_t*) sample_D2_22kHz_corpo, SAMPLE_D2_22KHZ_CORPO_L, 10000);
 
+#if SOUND_PLAYER == PED_ENABLED
         player_routine(pstate, nstate);
+#endif
         pstate = nstate;
     }
     /* USER CODE END 3 */

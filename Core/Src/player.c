@@ -51,7 +51,7 @@ void HAL_I2S_ErrorCallback(I2S_HandleTypeDef *hi2s) {
     Error_Handler();
 }
 
-#if PED_PHASE_VOCODER == ENABLED
+#if PED_PHASE_VOCODER == PED_ENABLED
 
 #define STFT_HOPLEN (32U)
 #define STFT_SEGLEN (64U)
@@ -253,7 +253,7 @@ size_t compose_note(unsigned int nstate, unsigned int pstate, int16_t *current_n
     size_t ctst    = MAX_NOTE_LEN;  // maybe: min(MAX_NOTE_LEN, current_note_max_len);  // chosen_time_stretching_target
     size_t n_notes = 0;
 
-#if PED_PHASE_VOCODER == ENABLED
+#if PED_PHASE_VOCODER == PED_ENABLED
 
     for (bitnotes_t inote = bitnote_c1; inote < bitnotes_n_ped_notes; inote++) {
         int bit_to_check = bitnotes_n_ped_notes - inote;
@@ -288,7 +288,7 @@ size_t compose_note(unsigned int nstate, unsigned int pstate, int16_t *current_n
 
     lcd_1602a_write_text(display_notes_buf);
 
-#if SCALE_AMPLITUDE_AFTER_ADDING == ENABLED
+#if SCALE_AMPLITUDE_AFTER_ADDING == PED_ENABLED
     if (n_notes > 1) {
         arm_scale_q15(current_note, 0xFFFF / n_notes, 0, current_note, current_note_max_len);
     }
@@ -337,7 +337,7 @@ size_t compose_note(unsigned int nstate, unsigned int pstate, int16_t *current_n
     // display_ptr += to_add;
     lcd_1602a_write_text(display_notes_buf);
 
-#if SCALE_AMPLITUDE_AFTER_ADDING == ENABLED
+#if SCALE_AMPLITUDE_AFTER_ADDING == PED_ENABLED
     // consider whether to include it
     if (n_notes > 1) {
         arm_scale_q15(current_note, 0xFFFF / n_notes, 0, current_note, current_note_max_len);
