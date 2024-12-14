@@ -366,20 +366,20 @@ void player_routine(uint32_t pstate, uint32_t nstate) {
         sai_is_transmitting         = false;
 
         ready_to_play_note = true;
-        HAL_GPIO_WritePin(LED1_GPIO_Port, LED1_Pin, GPIO_PIN_RESET);
+        HAL_GPIO_WritePin(BOARD_LED_GPIO_Port, BOARD_LED_Pin, GPIO_PIN_RESET);
     } else if (has_to_play_note && sai_transfer_completed) {
         sai_transfer_completed = false;
         sai_is_transmitting    = true;
 
         HAL_I2S_Transmit_DMA(&hi2s1, (uint16_t *)sound_data_db[active_b], (uint16_t)sound_data_db_len[active_b]);
-        HAL_GPIO_WritePin(LED1_GPIO_Port, LED1_Pin, GPIO_PIN_SET);
+        HAL_GPIO_WritePin(BOARD_LED_GPIO_Port, BOARD_LED_Pin, GPIO_PIN_SET);
 
     } else if (has_to_play_note && ready_to_play_note) {
         ready_to_play_note  = false;
         sai_is_transmitting = true;
 
         HAL_I2S_Transmit_DMA(&hi2s1, (uint16_t *)sound_data_db[active_b], (uint16_t)sound_data_db_len[active_b]);
-        HAL_GPIO_WritePin(LED1_GPIO_Port, LED1_Pin, GPIO_PIN_SET);
+        HAL_GPIO_WritePin(BOARD_LED_GPIO_Port, BOARD_LED_Pin, GPIO_PIN_SET);
     } else if (has_to_change_note) {
         has_to_change_note  = false;
         ready_to_play_note  = false;
@@ -388,7 +388,7 @@ void player_routine(uint32_t pstate, uint32_t nstate) {
         HAL_I2S_DMAStop(&hi2s1);  // HAL_SAI_DMAStop(&hsai_BlockA1);
         HAL_I2S_Transmit_DMA(&hi2s1, (uint16_t *)sound_data_db[active_b], (uint16_t)sound_data_db_len[active_b]);
 
-        HAL_GPIO_WritePin(LED1_GPIO_Port, LED1_Pin, GPIO_PIN_SET);
+        HAL_GPIO_WritePin(BOARD_LED_GPIO_Port, BOARD_LED_Pin, GPIO_PIN_SET);
     }
 
 #define ALL_KEYS_RELEASED (0)

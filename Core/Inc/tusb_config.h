@@ -30,6 +30,8 @@
 extern "C" {
 #endif
 
+#include "ped_config.h"
+
 //--------------------------------------------------------------------+
 // Board Specific Configuration
 //--------------------------------------------------------------------+
@@ -91,11 +93,26 @@ extern "C" {
 #endif
 
 //------------- CLASS -------------//
+#if PED_USB_DEVICE_CLASS == PED_USB_CDC_CLASS
+
 #define CFG_TUD_CDC    1
 #define CFG_TUD_MSC    1
 #define CFG_TUD_HID    0
 #define CFG_TUD_MIDI   0
 #define CFG_TUD_VENDOR 0
+
+#elif PED_USB_DEVICE_CLASS == PED_USB_MIDI_CLASS
+
+#define CFG_TUD_CDC    0
+#define CFG_TUD_MSC    0
+#define CFG_TUD_HID    0
+#define CFG_TUD_MIDI   1
+#define CFG_TUD_VENDOR 0
+
+#define CFG_TUD_MIDI_RX_BUFSIZE 64
+#define CFG_TUD_MIDI_TX_BUFSIZE 64
+
+#endif
 
 // CDC FIFO size of TX and RX
 #define CFG_TUD_CDC_RX_BUFSIZE (TUD_OPT_HIGH_SPEED ? 512 : 64)

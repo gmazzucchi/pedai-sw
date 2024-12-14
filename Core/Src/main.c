@@ -76,6 +76,8 @@ static void MX_ADC1_Init(void);
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 
+#if PED_USB_DEVICE_CLASS == PED_USB_CDC_CLASS
+
 uint32_t prevtime = 0;
 
 void cdc_example_keep_alive_task(void) {
@@ -87,6 +89,78 @@ void cdc_example_keep_alive_task(void) {
         tud_cdc_write_flush();
     }
 }
+
+#elif PED_USB_DEVICE_CLASS == PED_USB_MIDI_CLASS
+
+// void send_midi_note_on(uint8_t note, uint8_t velocity) {
+//     uint8_t packet[4] = {
+//         0x09,           // USB MIDI code index number (Note On)
+//         0x90,           // MIDI message (Note On, channel 0)
+//         note,           // Note number (e.g., middle C = 60)
+//         velocity        // Velocity (0-127)
+//     };
+//     tud_midi_stream_write(0, packet, 4);
+// }
+
+// Variable that holds the current position in the sequence.
+uint32_t note_pos = 0;
+
+uint32_t board_millis() {
+    return HAL_GetTick();
+}
+
+// Store example melody as an array of note values
+const uint8_t note_sequence[] = {74, 78, 81, 86, 90, 93, 98, 102, 57, 61, 66, 69, 73, 78, 81, 85, 88, 92, 97, 100, 97, 92,
+                                 88, 85, 81, 78, 74, 69, 66, 62,  57, 62, 66, 69, 74, 78, 81, 86, 90, 93, 97, 102, 97, 93,
+                                 90, 85, 81, 78, 73, 68, 64, 61,  56, 61, 64, 68, 74, 78, 81, 86, 90, 93, 98, 102};
+
+void midi_task(void) {
+    static uint32_t start_ms = 0;
+
+    uint8_t const cable_num = 0;  // MIDI jack associated with USB endpoint
+    uint8_t const channel   = 0;  // 0 for channel 1
+
+    // The MIDI interface always creates input and output port/jack descriptors
+    // regardless of these being used or not. Therefore incoming traffic should be read
+    // (possibly just discarded) to avoid the sender blocking in IO
+    while (tud_midi_available()) {
+        uint8_t packet[4];
+        tud_midi_packet_read(packet);
+    }
+
+    // send note periodically
+    if (board_millis() - start_ms < 286) {
+        return;  // not enough time
+    }
+    start_ms += 286;
+
+    // Previous positions in the note sequence.
+    int previous = (int)(note_pos - 1);
+
+    // If we currently are at position 0, set the
+    // previous position to the last note in the sequence.
+    if (previous < 0) {
+        previous = sizeof(note_sequence) - 1;
+    }
+
+    // Send Note On for current position at full velocity (127) on channel 1.
+    uint8_t note_on[3] = {0x90 | channel, note_sequence[note_pos], 127};
+    tud_midi_stream_write(cable_num, note_on, 3);
+
+    // Send Note Off for previous note.
+    uint8_t note_off[3] = {0x80 | channel, note_sequence[previous], 0};
+    tud_midi_stream_write(cable_num, note_off, 3);
+
+    // Increment position
+    note_pos++;
+
+    // If we are at the end of the sequence, start over.
+    if (note_pos >= sizeof(note_sequence)) {
+        note_pos = 0;
+    }
+}
+
+#endif
 
 /* USER CODE END 0 */
 
@@ -124,7 +198,9 @@ int main(void) {
     MX_ADC1_Init();
     /* USER CODE BEGIN 2 */
 
-#if PED_USB_CDC_CLASS == PED_ENABLED
+    HAL_GPIO_WritePin(BOARD_LED_GPIO_Port, BOARD_LED_Pin, GPIO_PIN_SET);
+
+#if PED_USB_DEVICE_CLASS == PED_USB_CDC_CLASS || PED_USB_DEVICE_CLASS == PED_USB_MIDI_CLASS
     tusb_rhport_init_t dev_init = {.role = TUSB_ROLE_DEVICE, .speed = TUSB_SPEED_AUTO};
     tusb_init(BOARD_TUD_RHPORT, &dev_init);
 #endif
@@ -167,9 +243,13 @@ int main(void) {
 
         /* USER CODE BEGIN 3 */
 
-#if PED_USB_CDC_CLASS == PED_ENABLED
+#if PED_USB_DEVICE_CLASS == PED_USB_CDC_CLASS
         tud_task();
         cdc_example_keep_alive_task();
+#elif PED_USB_DEVICE_CLASS == PED_USB_MIDI_CLASS
+        tud_task();
+        // GPIO_PinState button = HAL_GPIO_ReadPin(USER_BUTTON_GPIO_Port, USER_BUTTON_Pin);
+        midi_task();
 #endif
 
 #if HARDWARE_KEYS_ENABLED == PED_ENABLED
@@ -417,7 +497,7 @@ static void MX_GPIO_Init(void) {
     __HAL_RCC_GPIOB_CLK_ENABLE();
 
     /*Configure GPIO pin Output Level */
-    HAL_GPIO_WritePin(LED1_GPIO_Port, LED1_Pin, GPIO_PIN_RESET);
+    HAL_GPIO_WritePin(GPIOC, BOARD_LED_Pin | LED_MIDI_Pin | LED_SOUND_Pin, GPIO_PIN_RESET);
 
     /*Configure GPIO pin Output Level */
     HAL_GPIO_WritePin(GPIOA, MUX_C3_Pin | MUX_C2_Pin | MUX_C1_Pin | LCD_D6_Pin | LCD_D7_Pin | MUX_C0_Pin, GPIO_PIN_RESET);
@@ -426,12 +506,12 @@ static void MX_GPIO_Init(void) {
     HAL_GPIO_WritePin(
         GPIOB, LCD_RS_Pin | LCD_ENABLE_Pin | LCD_D0_Pin | LCD_D1_Pin | LCD_D2_Pin | LCD_D3_Pin | LCD_D4_Pin | LCD_D5_Pin, GPIO_PIN_RESET);
 
-    /*Configure GPIO pin : LED1_Pin */
-    GPIO_InitStruct.Pin   = LED1_Pin;
+    /*Configure GPIO pins : BOARD_LED_Pin LED_MIDI_Pin LED_SOUND_Pin */
+    GPIO_InitStruct.Pin   = BOARD_LED_Pin | LED_MIDI_Pin | LED_SOUND_Pin;
     GPIO_InitStruct.Mode  = GPIO_MODE_OUTPUT_PP;
     GPIO_InitStruct.Pull  = GPIO_NOPULL;
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-    HAL_GPIO_Init(LED1_GPIO_Port, &GPIO_InitStruct);
+    HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
     /*Configure GPIO pin : USER_BUTTON_Pin */
     GPIO_InitStruct.Pin  = USER_BUTTON_Pin;

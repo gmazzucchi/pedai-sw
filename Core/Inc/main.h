@@ -59,8 +59,12 @@ extern I2S_HandleTypeDef hi2s1;
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
-#define LED1_Pin              GPIO_PIN_13
-#define LED1_GPIO_Port        GPIOC
+#define BOARD_LED_Pin         GPIO_PIN_13
+#define BOARD_LED_GPIO_Port   GPIOC
+#define LED_MIDI_Pin          GPIO_PIN_14
+#define LED_MIDI_GPIO_Port    GPIOC
+#define LED_SOUND_Pin         GPIO_PIN_15
+#define LED_SOUND_GPIO_Port   GPIOC
 #define USER_BUTTON_Pin       GPIO_PIN_0
 #define USER_BUTTON_GPIO_Port GPIOA
 #define MUX_C3_Pin            GPIO_PIN_5
