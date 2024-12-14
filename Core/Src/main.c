@@ -25,7 +25,6 @@
 #include "key_reader.h"
 #include "lcd1602a.h"
 #include "player.h"
-#include "sample_22kHz_D2.h"
 
 #include <stdio.h>
 
@@ -76,26 +75,6 @@ static void MX_ADC1_Init(void);
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 
-volatile bool i2s_done = true;
-
-void HAL_I2S_TxCpltCallback(I2S_HandleTypeDef *hi2s) {
-    i2s_done = true;
-
-    lcd_1602a_write_text("here we are");
-    while (1)
-        ;
-}
-
-void HAL_I2S_TxHalfCpltCallback(I2S_HandleTypeDef *hi2s) {
-}
-
-void HAL_I2S_ErrorCallback(I2S_HandleTypeDef *hi2s) {
-    uint32_t error_code = HAL_I2S_GetError(hi2s);
-    char log_buf[BUFSIZ];
-    snprintf(log_buf, BUFSIZ, "%lu", error_code);
-    lcd_1602a_write_text(log_buf);
-}
-
 /* USER CODE END 0 */
 
 /**
@@ -137,22 +116,21 @@ int main(void) {
 
     uint32_t pstate = 0;
     uint32_t nstate = 0;
-    char log_buf[BUFSIZ];
     player_init();
 
     const bitnotes_t melody[] = {
-        bitnote_c1,
-        bitnote_d1,
-        bitnote_e1,
-        bitnote_c1,
-        bitnote_c1 | bitnote_e1,
-        bitnote_d1 | bitnote_f1,
-        bitnote_e1 | bitnote_g1,
-        bitnote_c1 | bitnote_e1,
-        bitnote_e1,
-        bitnote_f1,
-        bitnote_g1,
-        bitnote_g1,
+        (1 << bitnote_c1),
+        (1 << bitnote_d1),
+        (1 << bitnote_e1),
+        (1 << bitnote_c1),
+        (1 << bitnote_c1) | (1 << bitnote_e1),
+        (1 << bitnote_d1) | (1 << bitnote_f1),
+        (1 << bitnote_e1) | (1 << bitnote_g1),
+        (1 << bitnote_c1) | (1 << bitnote_e1),
+        (1 << bitnote_e1),
+        (1 << bitnote_f1),
+        (1 << bitnote_g1),
+        (1 << bitnote_g1),
     };
     size_t melody_ptr             = 0;
     const size_t melody_len       = sizeof(melody) / sizeof(melody[0]);
@@ -168,28 +146,22 @@ int main(void) {
 
         /* USER CODE BEGIN 3 */
 
+#if HARDWARE_KEYS_ENABLED == ENABLED
+        nstate = read_keys();
+#else
         if (HAL_GetTick() - last_changed_note > note_duration_ms) {
             last_changed_note = HAL_GetTick();
             nstate            = melody[melody_ptr];
             melody_ptr++;
             melody_ptr %= melody_len;
         }
-        // nstate = read_keys();
+#endif
 
-        /* if (nstate != pstate) {
-            snprintf(log_buf, BUFSIZ, "%lu", nstate);
-            lcd_1602a_write_text(log_buf);
-        } */
+        // play only one note in blocking mode
+        // HAL_I2S_Transmit(&hi2s1, (uint16_t*) sample_D2_22kHz_corpo, SAMPLE_D2_22KHZ_CORPO_L, 10000);
 
-        //    HAL_I2S_Transmit(&hi2s1, (uint16_t*) sample_D2_22kHz_corpo, SAMPLE_D2_22KHZ_CORPO_L, 10000);
         player_routine(pstate, nstate);
         pstate = nstate;
-        // if (i2s_done) {
-        //     i2s_done = false;
-        //     if (HAL_I2S_Transmit_DMA(&hi2s1, (uint16_t*) sample_D2_22kHz_corpo, SAMPLE_D2_22KHZ_CORPO_L) != HAL_OK) {
-        //         lcd_1602a_write_text("ERROR");
-        //     }
-        // }
     }
     /* USER CODE END 3 */
 }

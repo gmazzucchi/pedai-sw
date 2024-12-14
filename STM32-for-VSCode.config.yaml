@@ -92,7 +92,9 @@ sourceFiles:
   - Src/**
   - Core/Src/**
   - Core/Lib/**
+  - Drivers/CMSIS/DSP/Source/TransformFunctions/TransformFunctions.c
   - Drivers/CMSIS/DSP/Source/BasicMathFunctions/arm_add_q15.c
+  - Drivers/CMSIS/DSP/Source/BasicMathFunctions/arm_shift_q15.c
 
 
 # When no makefile is present it will show a warning pop-up.

@@ -5,8 +5,16 @@
 #include <stdint.h>
 #include <stdlib.h>
 
-#define MAX_NOTE_LEN (1000U)
-// #define PED_PHASE_VOCODER_ENABLED
+#define ENABLED  (1U)
+#define DISABLED (0U)
+
+#define MAX_NOTE_LEN (2048U)
+
+#define PED_PHASE_VOCODER ENABLED
+
+#define SCALE_AMPLITUDE_AFTER_ADDING DISABLED
+
+#define HARDWARE_KEYS_ENABLED DISABLED
 
 typedef enum {
     bitnote_c1 = 0,

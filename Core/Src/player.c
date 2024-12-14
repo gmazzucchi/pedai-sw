@@ -16,12 +16,13 @@ static volatile bool sai_transfer_completed      = false;
 static volatile bool sai_is_transmitting         = false;
 static volatile bool sai_half_transfer_completed = false;
 
-static int16_t tmp_adder[MAX_NOTE_LEN];
-static int16_t buffer0_sai[MAX_NOTE_LEN];
-static int16_t buffer1_sai[MAX_NOTE_LEN];
-static int16_t *sound_data_db[2]   = {buffer0_sai, buffer1_sai};
-static size_t sound_data_db_len[2] = {0, 0};
-static bool active_b               = 0;
+static int16_t tmp_adder[MAX_NOTE_LEN]                   = {0};
+static int16_t buffer0_sai[MAX_NOTE_LEN]                 = {0};
+static int16_t buffer1_sai[MAX_NOTE_LEN]                 = {0};
+static int16_t *sound_data_db[2]                         = {buffer0_sai, buffer1_sai};
+static size_t sound_data_db_len[2]                       = {0, 0};
+static bool active_b                                     = 0;
+static size_t note_buffer_position[bitnotes_n_ped_notes] = {0};
 
 static const char note_names[bitnotes_n_ped_notes][4] = {
     "c1", "c1#", "d1", "e1b", "e1", "f1", "f1#", "g1", "g1#", "a1", "b1b", "b1",
@@ -32,30 +33,58 @@ inline size_t min(size_t x, size_t y) {
     return (x > y) ? (y) : (x);
 }
 
-#if defined(PED_PHASE_VOCODER_ENABLED)
+void HAL_I2S_TxCpltCallback(I2S_HandleTypeDef *hi2s) {
+    sai_transfer_completed = true;
+    sai_is_transmitting    = false;
+}
 
-size_t phase_vocoder(int16_t *target_note, size_t target_len, int16_t *base_note, size_t base_note_len, int dsem) {
-    // // Apply Hann window
-    // hann_window(hann, FRAME_SIZE);
-    // for (int i = 0; i < FRAME_SIZE; i++) {
-    //     signal[i] *= hann[i];
-    // }
+void HAL_I2S_TxHalfCpltCallback(I2S_HandleTypeDef *hi2s) {
+    sai_half_transfer_completed = true;
+}
 
-    // // Perform FFT
-    // fft(signal, FRAME_SIZE);
+void HAL_I2S_ErrorCallback(I2S_HandleTypeDef *hi2s) {
+    uint32_t error_code = HAL_I2S_GetError(hi2s);
+    char log_buf[BUFSIZ];
+    snprintf(log_buf, BUFSIZ, "%lu", error_code);
+    lcd_1602a_write_text(log_buf);
+#warning Remove Error_Handler(); here
+    Error_Handler();
+}
 
-    int16_t fft_buf[CURRENT_NOTE_L];
+#if PED_PHASE_VOCODER == ENABLED
+
+#define STFT_HOPLEN (32U)
+#define STFT_SEGLEN (64U)
+#define STFT_N_SEGS ((2U * MAX_NOTE_LEN / STFT_SEGLEN) - 1U)
+
+#warning Not the cleanest way to do it
+#define SAMPLE_LEN (SAMPLE_D2_22KHZ_CORPO_L)
+
+static int16_t stft_bufs[STFT_N_SEGS][STFT_SEGLEN];
+
+size_t phase_vocoder(int16_t *target_note, size_t target_len, int16_t *base_note, size_t base_note_len, size_t offset, int dsem) {
+    // divide the signal to fill the stft_bufs
+    // maybe we have to apply a window function...
+    for (int isample = 0; isample < target_len; isample++) {
+        int sample_idx          = (isample + offset) % SAMPLE_LEN;
+        int blk_n               = 2 * isample / STFT_SEGLEN;
+        int blk_i               = isample % STFT_SEGLEN;
+        stft_bufs[blk_n][blk_i] = base_note[sample_idx];
+        if (isample - STFT_HOPLEN > 0) {
+            stft_bufs[blk_n + 1][(blk_i + STFT_HOPLEN) % STFT_SEGLEN] = base_note[sample_idx];
+        }
+    }
 
     const arm_cfft_instance_q15 cfft_instance = {
-        .fftLen       = target_len, /**< length of the FFT. */
-        .pTwiddle     = NULL,       // const q15_t *pTwiddle;             /**< points to the Twiddle factor table. */
-        .pBitRevTable = NULL,       // const uint16_t *pBitRevTable;      /**< points to the bit reversal table. */
-        .bitRevLength = 0           /**< bit reversal table length. */
+        .fftLen       = STFT_SEGLEN, /**< length of the FFT. */
+        .pTwiddle     = NULL,        // const q15_t *pTwiddle;             /**< points to the Twiddle factor table. */
+        .pBitRevTable = NULL,        // const uint16_t *pBitRevTable;      /**< points to the bit reversal table. */
+        .bitRevLength = 0            /**< bit reversal table length. */
     };
 
     const arm_rfft_instance_q15 fft_instance = {
-        .fftLenReal        = target_len, /**< length of the real FFT. */
-        .ifftFlagR         = 0,          /**< flag that selects forward (ifftFlagR=0) or inverse (ifftFlagR=1) transform. */
+        .fftLenReal        = STFT_SEGLEN, /**< length of the real FFT. */
+        .ifftFlagR         = 0,           /**< flag that selects forward (ifftFlagR=0) or inverse (ifftFlagR=1) transform. */
         .bitReverseFlagR   = 0, /**< flag that enables (bitReverseFlagR=1) or disables (bitReverseFlagR=0) bit reversal of output. */
         .twidCoefRModifier = 0, /**< twiddle coefficient modifier that supports different size FFTs with the same twiddle factor table. */
         .pTwiddleAReal     = NULL,            // const q15_t *pTwiddleAReal;   /**< points to the real twiddle factor table. */
@@ -63,45 +92,51 @@ size_t phase_vocoder(int16_t *target_note, size_t target_len, int16_t *base_note
         .pCfft             = &cfft_instance,  // const arm_cfft_instance_q15 *pCfft;    /**< points to the complex FFT instance. */
     };
 
-    arm_rfft_q15(&fft_instance, base_note, fft_buf);
+    for (size_t ibufs = 0; ibufs < STFT_N_SEGS; ibufs++) {
+        arm_rfft_q15(&fft_instance, stft_bufs[ibufs], stft_bufs[ibufs]);
+    }
 
-    // Time-stretch: Modify phase and overlap
-    // [Details omitted for brevity—phase unwrapping, modification]
+    // now it's time to stretch and to linearly interpolate
+    // arm_linear_interp_q15()
 
     const arm_cfft_instance_q15 inverse_cfft_instance = {
-        .fftLen       = target_len, /**< length of the FFT. */
-        .pTwiddle     = NULL,       // const q15_t *pTwiddle;             /**< points to the Twiddle factor table. */
-        .pBitRevTable = NULL,       // const uint16_t *pBitRevTable;      /**< points to the bit reversal table. */
-        .bitRevLength = 0           /**< bit reversal table length. */
+        .fftLen       = STFT_SEGLEN, /**< length of the FFT. */
+        .pTwiddle     = NULL,        // const q15_t *pTwiddle;             /**< points to the Twiddle factor table. */
+        .pBitRevTable = NULL,        // const uint16_t *pBitRevTable;      /**< points to the bit reversal table. */
+        .bitRevLength = 0            /**< bit reversal table length. */
     };
 
     const arm_rfft_instance_q15 inverse_fft_instance = {
-        .fftLenReal        = target_len, /**< length of the real FFT. */
-        .ifftFlagR         = 0,          /**< flag that selects forward (ifftFlagR=0) or inverse (ifftFlagR=1) transform. */
+        .fftLenReal        = STFT_SEGLEN, /**< length of the real FFT. */
+        .ifftFlagR         = 0,           /**< flag that selects forward (ifftFlagR=0) or inverse (ifftFlagR=1) transform. */
         .bitReverseFlagR   = 1, /**< flag that enables (bitReverseFlagR=1) or disables (bitReverseFlagR=0) bit reversal of output. */
         .twidCoefRModifier = 0, /**< twiddle coefficient modifier that supports different size FFTs with the same twiddle factor table. */
-        .pTwiddleAReal     = NULL,            // const q15_t *pTwiddleAReal;   /**< points to the real twiddle factor table. */
-        .pTwiddleBReal     = NULL,            // const q15_t *pTwiddleBReal;   /**< points to the imag twiddle factor table. */
-        .pCfft             = &cfft_instance,  // const arm_cfft_instance_q15 *pCfft;    /**< points to the complex FFT instance. */
+        .pTwiddleAReal     = NULL,                    // const q15_t *pTwiddleAReal;   /**< points to the real twiddle factor table. */
+        .pTwiddleBReal     = NULL,                    // const q15_t *pTwiddleBReal;   /**< points to the imag twiddle factor table. */
+        .pCfft             = &inverse_cfft_instance,  // const arm_cfft_instance_q15 *pCfft;    /**< points to the complex FFT instance. */
     };
 
-    arm_rfft_q15(&inverse_fft_instance, fft_buf, target_note);
+    // arm_rfft_q15(&inverse_fft_instance, fft_buf, target_note);
+    for (size_t ibufs = 0; ibufs < STFT_N_SEGS; ibufs++) {
+        arm_rfft_q15(&inverse_fft_instance, stft_bufs[ibufs], stft_bufs[ibufs]);
+    }
 
-    // // Overlap and Add (OLA)
-    // // [Details omitted for brevity]
+    // restore
 }
 
-size_t attacco_pitch_shifting(int16_t *target_note, size_t target_len, int16_t *base_note, size_t base_note_len, int dsem) {
-    return phase_vocoder(target_note, target_len, sample_D2_22kHz_attacco, SAMPLE_D2_22KHZ_ATTACCO_L, dsem);
+size_t attacco_pitch_shifting(int16_t *target_note, size_t target_len, int16_t *base_note, size_t base_note_len, size_t offset, int dsem) {
+    size_t len = phase_vocoder(target_note, target_len, sample_D2_22kHz_corpo, SAMPLE_D2_22KHZ_CORPO_L, offset, dsem);
+#warning TODO: implement the attacco directly from the corpo
+    return target_len;
 }
 
-size_t corpo_pitch_shifting(int16_t *target_note, size_t target_len, int16_t *base_note, size_t base_note_len, int dsem) {
-    return phase_vocoder(target_note, target_len, sample_D2_22kHz_corpo, SAMPLE_D2_22KHZ_CORPO_L, dsem);
+size_t corpo_pitch_shifting(int16_t *target_note, size_t target_len, int16_t *base_note, size_t base_note_len, size_t offset, int dsem) {
+    return phase_vocoder(target_note, target_len, sample_D2_22kHz_corpo, SAMPLE_D2_22KHZ_CORPO_L, offset, dsem);
 }
 
-size_t decay_pitch_shifting(int16_t *target_note, size_t target_len, int16_t *base_note, size_t base_note_len, int dsem) {
+size_t decay_pitch_shifting(int16_t *target_note, size_t target_len, int16_t *base_note, size_t base_note_len, size_t offset, int dsem) {
     // take base note and pitch shift
-    size_t len = phase_vocoder(target_note, target_len, sample_D2_22kHz_attacco, SAMPLE_D2_22KHZ_ATTACCO_L, dsem);
+    size_t len = phase_vocoder(target_note, target_len, sample_D2_22kHz_corpo, SAMPLE_D2_22KHZ_CORPO_L, offset, dsem);
     // then apply decay effect
     double TAU = (((double)target_len) / 15.0);
     for (size_t idx = 0; idx < target_len; idx++) {
@@ -190,19 +225,18 @@ size_t corpo_pitch_shifting(int16_t *curr, size_t curr_max_len, int16_t *base, s
  * @return size_t 
  */
 size_t compose_note(unsigned int nstate, unsigned int pstate, int16_t *current_note, size_t current_note_max_len) {
-    // placeholder
-
+    // placeholder for testing
     // memcpy(current_note, sample_D2_22kHz_corpo, SAMPLE_D2_22KHZ_CORPO_L * sizeof(uint16_t));
     // return SAMPLE_D2_22KHZ_CORPO_L;
-    // return apply_window_crossfading(current_note, SAMPLE_D2_22KHZ_CORPO_L); // doesn't sound good...
 
     /***
-     * pstate 0110111
-     * nstate 1010011
+     * for example:
+     * pstate 0110111 // keys before
+     * nstate 1010011 // keys now
      * 
-     * keep_n 0010011
-     * new_ns 1000100
-     * old_ns 0100100
+     * keep_n 0010011 // keys held down
+     * new_ns 1000100 // keys just pressed
+     * old_ns 0100100 // keys just released
      */
     uint32_t keep_notes = nstate & pstate;      // do the corpo
     uint32_t new_notes  = nstate ^ keep_notes;  // do the attacco
@@ -216,45 +250,56 @@ size_t compose_note(unsigned int nstate, unsigned int pstate, int16_t *current_n
 
     memset(current_note, 0, current_note_max_len);
 
-    size_t ctst    = SAMPLE_D2_22KHZ_CORPO_L;  // chosen_time_stretching_target
+    size_t ctst    = MAX_NOTE_LEN;  // maybe: min(MAX_NOTE_LEN, current_note_max_len);  // chosen_time_stretching_target
     size_t n_notes = 0;
 
-#if defined(PED_PHASE_VOCODER_ENABLED)
+#if PED_PHASE_VOCODER == ENABLED
 
-    for (size_t isem = 0; isem < 12; isem++) {
-        if ((new_notes >> isem) & 1) {
-            attacco_pitch_shifting(tmp_adder, ctst, sample_D2_22kHz_attacco, SAMPLE_D2_22KHZ_ATTACCO_L, isem);
-            // TODO: check ctst == return value of pitch shifting
-            arm_add_q15(current_note, tmp_adder, current_note, ctst);
-        } else if ((keep_notes >> isem) & 1) {
-            corpo_pitch_shifting(tmp_adder, ctst, sample_D2_22kHz_corpo, SAMPLE_D2_22KHZ_CORPO_L, isem);
-            // TODO: check ctst == return value of pitch shifting
-            arm_add_q15(current_note, tmp_adder, current_note, ctst);
+    for (bitnotes_t inote = bitnote_c1; inote < bitnotes_n_ped_notes; inote++) {
+        int bit_to_check = bitnotes_n_ped_notes - inote;
+        if ((new_notes >> bit_to_check) & 1) {
+            size_t to_add =
+                attacco_pitch_shifting(tmp_adder, ctst, sample_D2_22kHz_corpo, SAMPLE_D2_22KHZ_CORPO_L, note_buffer_position[inote], inote);
+            // TODO: check ctst == return value of pitch shifting, but we can assume it
+            note_buffer_position[inote] = (note_buffer_position[inote] + to_add) % SAMPLE_LEN;
+            arm_add_q15(current_note, tmp_adder, current_note, to_add);
+        } else if ((keep_notes >> bit_to_check) & 1) {
+            size_t to_add =
+                corpo_pitch_shifting(tmp_adder, ctst, sample_D2_22kHz_corpo, SAMPLE_D2_22KHZ_CORPO_L, note_buffer_position[inote], inote);
+            // TODO: check ctst == return value of pitch shifting, but we can assume it
+            note_buffer_position[inote] = (note_buffer_position[inote] + to_add) % SAMPLE_LEN;
+            arm_add_q15(current_note, tmp_adder, current_note, to_add);
+        } else if ((old_notes >> bit_to_check) & 1) {
+            size_t to_add =
+                decay_pitch_shifting(tmp_adder, ctst, sample_D2_22kHz_corpo, SAMPLE_D2_22KHZ_CORPO_L, note_buffer_position[inote], inote);
+            // TODO: check ctst == return value of pitch shifting, but we can assume it
+            note_buffer_position[inote] = (note_buffer_position[inote] + to_add) % SAMPLE_LEN;
+            arm_add_q15(current_note, tmp_adder, current_note, to_add);
+        } else {
+            // note is not played so reset the note_buffer_position[inote]
+            note_buffer_position[inote] = 0;
         }
-        /* 
-            else if ((old_notes >> isem) & 1) {
-                decay_pitch_shifting(tmp_adder, ctst, sample_D2_22kHz_corpo, SAMPLE_D2_22KHZ_CORPO_L, isem);
-                // TODO: check ctst == return value of pitch shifting
-                arm_add_q15(current_note, tmp_adder, current_note, ctst);
-        } 
-        */
 
-        if ((new_notes >> isem) & 1 && (keep_notes >> isem) & 1) {
-            int to_add = snprintf(display_notes_buf + display_ptr, BUFSIZ - display_ptr, "%s ", note_names[note_d + isem]);
+        if ((nstate >> bit_to_check) & 1) {
+            int to_add = snprintf(display_notes_buf + display_ptr, BUFSIZ - display_ptr, "%s ", note_names[inote]);
             display_ptr += to_add;
         }
     }
 
     lcd_1602a_write_text(display_notes_buf);
 
-    if (n_notes > 1)
+#if SCALE_AMPLITUDE_AFTER_ADDING == ENABLED
+    if (n_notes > 1) {
         arm_scale_q15(current_note, 0xFFFF / n_notes, 0, current_note, current_note_max_len);
+    }
+#endif
 
     return ctst;
 
 #else
 
-    for (size_t isem = 0; isem < 15; isem++) {
+    for (bitnotes_t inote = bitnote_c1; inote < bitnotes_n_ped_notes; inote++) {
+        int bit_to_check = bitnotes_n_ped_notes - inote;
         /* 
             As it should be...
             if ((nstate >> isem) & 1) {
@@ -275,14 +320,16 @@ size_t compose_note(unsigned int nstate, unsigned int pstate, int16_t *current_n
             } 
         */
 
-        if ((new_notes >> isem) & 1) {
-            tmp_adder_len        = corpo_pitch_shifting(tmp_adder, MAX_NOTE_LEN, sample_D2_22kHz_corpo, SAMPLE_D2_22KHZ_CORPO_L, isem);
+        if ((new_notes >> bit_to_check) & 1) {
+            // TODO: attacco
+            tmp_adder_len        = corpo_pitch_shifting(tmp_adder, MAX_NOTE_LEN, sample_D2_22kHz_corpo, SAMPLE_D2_22KHZ_CORPO_L, inote);
             current_note_max_len = min(current_note_max_len, tmp_adder_len);
             arm_add_q15(current_note, tmp_adder, current_note, current_note_max_len);
             n_notes++;
-            int to_add = snprintf(display_notes_buf + display_ptr, BUFSIZ - display_ptr, "%s ", note_names[bitnote_d1 + isem]);
+            int to_add = snprintf(display_notes_buf + display_ptr, BUFSIZ - display_ptr, "%s ", note_names[inote]);
             display_ptr += to_add;
-        } else if ((keep_notes >> isem) & 1) {
+        } else if ((keep_notes >> bit_to_check) & 1) {
+            // the note is the same
         }
     }
 
@@ -290,18 +337,24 @@ size_t compose_note(unsigned int nstate, unsigned int pstate, int16_t *current_n
     // display_ptr += to_add;
     lcd_1602a_write_text(display_notes_buf);
 
+#if SCALE_AMPLITUDE_AFTER_ADDING == ENABLED
     // consider whether to include it
-    // if (n_notes > 1)
-    // arm_scale_q15(current_note, 0xFFFF / n_notes, 0, current_note, current_note_max_len);
+    if (n_notes > 1) {
+        arm_scale_q15(current_note, 0xFFFF / n_notes, 0, current_note, current_note_max_len);
+    }
+#endif
 
     return current_note_max_len;
 #endif
 }
 
-void player_init() {
-    memset(tmp_adder, 0, MAX_NOTE_LEN * sizeof(int16_t));
-    memset(buffer0_sai, 0, MAX_NOTE_LEN * sizeof(int16_t));
-    memset(buffer1_sai, 0, MAX_NOTE_LEN * sizeof(int16_t));
+void player_init(void) {
+    /* 
+        // actually not needed
+        memset(tmp_adder, 0, MAX_NOTE_LEN * sizeof(int16_t));
+        memset(buffer0_sai, 0, MAX_NOTE_LEN * sizeof(int16_t));
+        memset(buffer1_sai, 0, MAX_NOTE_LEN * sizeof(int16_t)); 
+    */
 }
 
 void player_routine(uint32_t pstate, uint32_t nstate) {
@@ -357,8 +410,6 @@ void player_routine(uint32_t pstate, uint32_t nstate) {
         has_to_play_note = true;
         // memcpy(doublebuffer_sai[!active_buffer_sai], doublebuffer_sai[active_buffer_sai], doublebuffer_sai_len[active_buffer_sai] * sizeof(int16_t));
     } else {
-// TODO: avoid interrupting the wave, either wait for the DMA to finish transmitting or start the note with an offset (very cool ngl)
-#warning avoid interrupting the wave
         // np to p
         // p different note
         // construct the note in the inactive buffer and then swap the buffer at the next iteration
