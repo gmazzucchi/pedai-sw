@@ -67,12 +67,12 @@ extern I2S_HandleTypeDef hi2s1;
 #define LED_SOUND_GPIO_Port   GPIOC
 #define USER_BUTTON_Pin       GPIO_PIN_0
 #define USER_BUTTON_GPIO_Port GPIOA
-#define MUX_C3_Pin            GPIO_PIN_5
-#define MUX_C3_GPIO_Port      GPIOA
-#define MUX_C2_Pin            GPIO_PIN_6
+#define MUX_C2_Pin            GPIO_PIN_5
 #define MUX_C2_GPIO_Port      GPIOA
-#define MUX_C1_Pin            GPIO_PIN_7
+#define MUX_C1_Pin            GPIO_PIN_6
 #define MUX_C1_GPIO_Port      GPIOA
+#define MUX_C0_Pin            GPIO_PIN_7
+#define MUX_C0_GPIO_Port      GPIOA
 #define LCD_RS_Pin            GPIO_PIN_0
 #define LCD_RS_GPIO_Port      GPIOB
 #define LCD_ENABLE_Pin        GPIO_PIN_1
@@ -93,12 +93,18 @@ extern I2S_HandleTypeDef hi2s1;
 #define LCD_D6_GPIO_Port      GPIOA
 #define LCD_D7_Pin            GPIO_PIN_9
 #define LCD_D7_GPIO_Port      GPIOA
-#define MUX_C0_Pin            GPIO_PIN_10
-#define MUX_C0_GPIO_Port      GPIOA
-#define MUX_D0_Pin            GPIO_PIN_6
-#define MUX_D0_GPIO_Port      GPIOB
-#define MUX_D1_Pin            GPIO_PIN_7
-#define MUX_D1_GPIO_Port      GPIOB
+#define MUX3_DATA_Pin         GPIO_PIN_10
+#define MUX3_DATA_GPIO_Port   GPIOA
+#define MUX6_DATA_Pin         GPIO_PIN_4
+#define MUX6_DATA_GPIO_Port   GPIOB
+#define MUX1_DATA_Pin         GPIO_PIN_6
+#define MUX1_DATA_GPIO_Port   GPIOB
+#define MUX2_DATA_Pin         GPIO_PIN_7
+#define MUX2_DATA_GPIO_Port   GPIOB
+#define MUX5_DATA_Pin         GPIO_PIN_8
+#define MUX5_DATA_GPIO_Port   GPIOB
+#define MUX4_DATA_Pin         GPIO_PIN_9
+#define MUX4_DATA_GPIO_Port   GPIOB
 
 /* USER CODE BEGIN Private defines */
 

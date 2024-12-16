@@ -535,7 +535,7 @@ static void MX_GPIO_Init(void) {
     HAL_GPIO_WritePin(GPIOC, BOARD_LED_Pin | LED_MIDI_Pin | LED_SOUND_Pin, GPIO_PIN_RESET);
 
     /*Configure GPIO pin Output Level */
-    HAL_GPIO_WritePin(GPIOA, MUX_C3_Pin | MUX_C2_Pin | MUX_C1_Pin | LCD_D6_Pin | LCD_D7_Pin | MUX_C0_Pin, GPIO_PIN_RESET);
+    HAL_GPIO_WritePin(GPIOA, MUX_C2_Pin | MUX_C1_Pin | MUX_C0_Pin | LCD_D6_Pin | LCD_D7_Pin, GPIO_PIN_RESET);
 
     /*Configure GPIO pin Output Level */
     HAL_GPIO_WritePin(
@@ -554,9 +554,9 @@ static void MX_GPIO_Init(void) {
     GPIO_InitStruct.Pull = GPIO_NOPULL;
     HAL_GPIO_Init(USER_BUTTON_GPIO_Port, &GPIO_InitStruct);
 
-    /*Configure GPIO pins : MUX_C3_Pin MUX_C2_Pin MUX_C1_Pin LCD_D6_Pin
-                           LCD_D7_Pin MUX_C0_Pin */
-    GPIO_InitStruct.Pin   = MUX_C3_Pin | MUX_C2_Pin | MUX_C1_Pin | LCD_D6_Pin | LCD_D7_Pin | MUX_C0_Pin;
+    /*Configure GPIO pins : MUX_C2_Pin MUX_C1_Pin MUX_C0_Pin LCD_D6_Pin
+                           LCD_D7_Pin */
+    GPIO_InitStruct.Pin   = MUX_C2_Pin | MUX_C1_Pin | MUX_C0_Pin | LCD_D6_Pin | LCD_D7_Pin;
     GPIO_InitStruct.Mode  = GPIO_MODE_OUTPUT_PP;
     GPIO_InitStruct.Pull  = GPIO_NOPULL;
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
@@ -570,10 +570,17 @@ static void MX_GPIO_Init(void) {
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
     HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
-    /*Configure GPIO pins : MUX_D0_Pin MUX_D1_Pin */
-    GPIO_InitStruct.Pin  = MUX_D0_Pin | MUX_D1_Pin;
+    /*Configure GPIO pin : MUX3_DATA_Pin */
+    GPIO_InitStruct.Pin  = MUX3_DATA_Pin;
     GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-    GPIO_InitStruct.Pull = GPIO_PULLUP;
+    GPIO_InitStruct.Pull = GPIO_NOPULL;
+    HAL_GPIO_Init(MUX3_DATA_GPIO_Port, &GPIO_InitStruct);
+
+    /*Configure GPIO pins : MUX6_DATA_Pin MUX1_DATA_Pin MUX2_DATA_Pin MUX5_DATA_Pin
+                           MUX4_DATA_Pin */
+    GPIO_InitStruct.Pin  = MUX6_DATA_Pin | MUX1_DATA_Pin | MUX2_DATA_Pin | MUX5_DATA_Pin | MUX4_DATA_Pin;
+    GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+    GPIO_InitStruct.Pull = GPIO_NOPULL;
     HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
     /* USER CODE BEGIN MX_GPIO_Init_2 */
