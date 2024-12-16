@@ -1,4 +1,4 @@
-#include "player.h"
+#include "sound_player.h"
 
 #include "arm_math.h"
 #include "lcd1602a.h"
@@ -16,18 +16,13 @@ static volatile bool sai_transfer_completed      = false;
 static volatile bool sai_is_transmitting         = false;
 static volatile bool sai_half_transfer_completed = false;
 
-static int16_t tmp_adder[MAX_NOTE_LEN]                   = {0};
-static int16_t buffer0_sai[MAX_NOTE_LEN]                 = {0};
-static int16_t buffer1_sai[MAX_NOTE_LEN]                 = {0};
-static int16_t *sound_data_db[2]                         = {buffer0_sai, buffer1_sai};
-static size_t sound_data_db_len[2]                       = {0, 0};
-static bool active_b                                     = 0;
-static size_t note_buffer_position[bitnotes_n_ped_notes] = {0};
-
-static const char note_names[bitnotes_n_ped_notes][4] = {
-    "c1", "c1#", "d1", "e1b", "e1", "f1", "f1#", "g1", "g1#", "a1", "b1b", "b1",
-    "c2", "c2#", "d2", "e2b", "e2", "f2", "f2#", "g2", "g2#", "a2", "b2b", "b2",
-};
+static int16_t tmp_adder[MAX_NOTE_LEN]         = {0};
+static int16_t buffer0_sai[MAX_NOTE_LEN]       = {0};
+static int16_t buffer1_sai[MAX_NOTE_LEN]       = {0};
+static int16_t *sound_data_db[2]               = {buffer0_sai, buffer1_sai};
+static size_t sound_data_db_len[2]             = {0, 0};
+static bool active_b                           = 0;
+static size_t note_buffer_position[n_bitnotes] = {0};
 
 inline size_t min(size_t x, size_t y) {
     return (x > y) ? (y) : (x);
@@ -238,9 +233,9 @@ size_t compose_note(unsigned int nstate, unsigned int pstate, int16_t *current_n
      * new_ns 1000100 // keys just pressed
      * old_ns 0100100 // keys just released
      */
-    uint32_t keep_notes = nstate & pstate;      // do the corpo
-    uint32_t new_notes  = nstate ^ keep_notes;  // do the attacco
-    uint32_t old_notes  = pstate ^ keep_notes;  // do the rilascio
+    const uint32_t keep_notes = nstate & pstate;      // do the corpo
+    const uint32_t new_notes  = nstate ^ keep_notes;  // do the attacco
+    const uint32_t old_notes  = pstate ^ keep_notes;  // do the rilascio
     int16_t tmp_adder[MAX_NOTE_LEN];
     int16_t tmp_time_stretcher[MAX_NOTE_LEN];
     size_t tmp_adder_len          = 0;
@@ -255,8 +250,8 @@ size_t compose_note(unsigned int nstate, unsigned int pstate, int16_t *current_n
 
 #if PED_PHASE_VOCODER == PED_ENABLED
 
-    for (bitnotes_t inote = bitnote_c1; inote < bitnotes_n_ped_notes; inote++) {
-        int bit_to_check = bitnotes_n_ped_notes - inote;
+    for (bitnotes_t inote = bitnote_c1; inote < n_bitnotes; inote++) {
+        int bit_to_check = n_bitnotes - inote;
         if ((new_notes >> bit_to_check) & 1) {
             size_t to_add =
                 attacco_pitch_shifting(tmp_adder, ctst, sample_D2_22kHz_corpo, SAMPLE_D2_22KHZ_CORPO_L, note_buffer_position[inote], inote);
@@ -298,8 +293,8 @@ size_t compose_note(unsigned int nstate, unsigned int pstate, int16_t *current_n
 
 #else
 
-    for (bitnotes_t inote = bitnote_c1; inote < bitnotes_n_ped_notes; inote++) {
-        int bit_to_check = bitnotes_n_ped_notes - inote;
+    for (bitnotes_t inote = bitnote_c1; inote < n_bitnotes; inote++) {
+        int bit_to_check = n_bitnotes - inote;
         /* 
             As it should be...
             if ((nstate >> isem) & 1) {
@@ -348,7 +343,7 @@ size_t compose_note(unsigned int nstate, unsigned int pstate, int16_t *current_n
 #endif
 }
 
-void player_init(void) {
+void sound_player_init(void) {
     /* 
         // actually not needed
         memset(tmp_adder, 0, MAX_NOTE_LEN * sizeof(int16_t));
@@ -357,7 +352,7 @@ void player_init(void) {
     */
 }
 
-void player_routine(uint32_t pstate, uint32_t nstate) {
+void sound_player_routine(uint32_t pstate, uint32_t nstate) {
     if (!has_to_play_note && sai_is_transmitting) {
         // stop the sound
         HAL_I2S_DMAStop(&hi2s1);  // HAL_SAI_DMAStop(&hsai_BlockA1);
@@ -366,20 +361,20 @@ void player_routine(uint32_t pstate, uint32_t nstate) {
         sai_is_transmitting         = false;
 
         ready_to_play_note = true;
-        HAL_GPIO_WritePin(BOARD_LED_GPIO_Port, BOARD_LED_Pin, GPIO_PIN_RESET);
+        HAL_GPIO_WritePin(BOARD_LED_GPIO_Port, BOARD_LED_Pin, GPIO_PIN_SET);
     } else if (has_to_play_note && sai_transfer_completed) {
         sai_transfer_completed = false;
         sai_is_transmitting    = true;
 
         HAL_I2S_Transmit_DMA(&hi2s1, (uint16_t *)sound_data_db[active_b], (uint16_t)sound_data_db_len[active_b]);
-        HAL_GPIO_WritePin(BOARD_LED_GPIO_Port, BOARD_LED_Pin, GPIO_PIN_SET);
+        HAL_GPIO_WritePin(BOARD_LED_GPIO_Port, BOARD_LED_Pin, GPIO_PIN_RESET);
 
     } else if (has_to_play_note && ready_to_play_note) {
         ready_to_play_note  = false;
         sai_is_transmitting = true;
 
         HAL_I2S_Transmit_DMA(&hi2s1, (uint16_t *)sound_data_db[active_b], (uint16_t)sound_data_db_len[active_b]);
-        HAL_GPIO_WritePin(BOARD_LED_GPIO_Port, BOARD_LED_Pin, GPIO_PIN_SET);
+        HAL_GPIO_WritePin(BOARD_LED_GPIO_Port, BOARD_LED_Pin, GPIO_PIN_RESET);
     } else if (has_to_change_note) {
         has_to_change_note  = false;
         ready_to_play_note  = false;
@@ -388,7 +383,7 @@ void player_routine(uint32_t pstate, uint32_t nstate) {
         HAL_I2S_DMAStop(&hi2s1);  // HAL_SAI_DMAStop(&hsai_BlockA1);
         HAL_I2S_Transmit_DMA(&hi2s1, (uint16_t *)sound_data_db[active_b], (uint16_t)sound_data_db_len[active_b]);
 
-        HAL_GPIO_WritePin(BOARD_LED_GPIO_Port, BOARD_LED_Pin, GPIO_PIN_SET);
+        HAL_GPIO_WritePin(BOARD_LED_GPIO_Port, BOARD_LED_Pin, GPIO_PIN_RESET);
     }
 
 #define ALL_KEYS_RELEASED (0)

@@ -24,7 +24,10 @@
 
 #include "key_reader.h"
 #include "lcd1602a.h"
-#include "player.h"
+#include "midi_player.h"
+#include "ped_config.h"
+#include "ped_types.h"
+#include "sound_player.h"
 #include "tusb.h"
 
 #include <stdio.h>
@@ -76,6 +79,10 @@ static void MX_ADC1_Init(void);
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 
+uint32_t get_current_time_ms() {
+    return HAL_GetTick();
+}
+
 #if PED_USB_DEVICE_CLASS == PED_USB_CDC_CLASS
 
 uint32_t prevtime = 0;
@@ -92,73 +99,74 @@ void cdc_example_keep_alive_task(void) {
 
 #elif PED_USB_DEVICE_CLASS == PED_USB_MIDI_CLASS
 
-// void send_midi_note_on(uint8_t note, uint8_t velocity) {
-//     uint8_t packet[4] = {
-//         0x09,           // USB MIDI code index number (Note On)
-//         0x90,           // MIDI message (Note On, channel 0)
-//         note,           // Note number (e.g., middle C = 60)
-//         velocity        // Velocity (0-127)
-//     };
-//     tud_midi_stream_write(0, packet, 4);
-// }
+/* 
+    // MIDI EXAMPLE FOR SEND NOTE
+    void send_midi_note_on(uint8_t note, uint8_t velocity) {
+        uint8_t packet[4] = {
+            0x09,           // USB MIDI code index number (Note On)
+            0x90,           // MIDI message (Note On, channel 0)
+            note,           // Note number (e.g., middle C = 60)
+            velocity        // Velocity (0-127)
+        };
+        tud_midi_stream_write(0, packet, 4);
+    } 
+*/
 
-// Variable that holds the current position in the sequence.
-uint32_t note_pos = 0;
+/* 
+    // MIDI EXAMPLE TASK 
 
-uint32_t board_millis() {
-    return HAL_GetTick();
-}
+    // Variable that holds the current position in the sequence.
+    uint32_t note_pos = 0;
 
-// Store example melody as an array of note values
-const uint8_t note_sequence[] = {74, 78, 81, 86, 90, 93, 98, 102, 57, 61, 66, 69, 73, 78, 81, 85, 88, 92, 97, 100, 97, 92,
-                                 88, 85, 81, 78, 74, 69, 66, 62,  57, 62, 66, 69, 74, 78, 81, 86, 90, 93, 97, 102, 97, 93,
-                                 90, 85, 81, 78, 73, 68, 64, 61,  56, 61, 64, 68, 74, 78, 81, 86, 90, 93, 98, 102};
+    // Store example melody as an array of note values
+    const uint8_t note_sequence[] = {60,61,62,63,64,65,66,67,68,69,70,71};
 
-void midi_task(void) {
-    static uint32_t start_ms = 0;
+    void midi_example_melody_task(void) {
+        static uint32_t start_ms = 0;
 
-    uint8_t const cable_num = 0;  // MIDI jack associated with USB endpoint
-    uint8_t const channel   = 0;  // 0 for channel 1
+        uint8_t const cable_num = 0;  // MIDI jack associated with USB endpoint
+        uint8_t const channel   = 0;  // 0 for channel 1
 
-    // The MIDI interface always creates input and output port/jack descriptors
-    // regardless of these being used or not. Therefore incoming traffic should be read
-    // (possibly just discarded) to avoid the sender blocking in IO
-    while (tud_midi_available()) {
-        uint8_t packet[4];
-        tud_midi_packet_read(packet);
-    }
+        // The MIDI interface always creates input and output port/jack descriptors
+        // regardless of these being used or not. Therefore incoming traffic should be read
+        // (possibly just discarded) to avoid the sender blocking in IO
+        while (tud_midi_available()) {
+            uint8_t packet[4];
+            tud_midi_packet_read(packet);
+        }
 
-    // send note periodically
-    if (board_millis() - start_ms < 286) {
-        return;  // not enough time
-    }
-    start_ms += 286;
+        // send note periodically
+        if (get_current_time_ms() - start_ms < 286) {
+            return;  // not enough time
+        }
+        start_ms += 286;
 
-    // Previous positions in the note sequence.
-    int previous = (int)(note_pos - 1);
+        // Previous positions in the note sequence.
+        int previous = (int)(note_pos - 1);
 
-    // If we currently are at position 0, set the
-    // previous position to the last note in the sequence.
-    if (previous < 0) {
-        previous = sizeof(note_sequence) - 1;
-    }
+        // If we currently are at position 0, set the
+        // previous position to the last note in the sequence.
+        if (previous < 0) {
+            previous = sizeof(note_sequence) - 1;
+        }
 
-    // Send Note On for current position at full velocity (127) on channel 1.
-    uint8_t note_on[3] = {0x90 | channel, note_sequence[note_pos], 127};
-    tud_midi_stream_write(cable_num, note_on, 3);
+        // Send Note On for current position at full velocity (127) on channel 1.
+        uint8_t note_on[3] = {0x90 | channel, note_sequence[note_pos], 127};
+        tud_midi_stream_write(cable_num, note_on, 3);
 
-    // Send Note Off for previous note.
-    uint8_t note_off[3] = {0x80 | channel, note_sequence[previous], 0};
-    tud_midi_stream_write(cable_num, note_off, 3);
+        // Send Note Off for previous note.
+        uint8_t note_off[3] = {0x80 | channel, note_sequence[previous], 0};
+        tud_midi_stream_write(cable_num, note_off, 3);
 
-    // Increment position
-    note_pos++;
+        // Increment position
+        note_pos++;
 
-    // If we are at the end of the sequence, start over.
-    if (note_pos >= sizeof(note_sequence)) {
-        note_pos = 0;
-    }
-}
+        // If we are at the end of the sequence, start over.
+        if (note_pos >= sizeof(note_sequence)) {
+            note_pos = 0;
+        }
+    } 
+*/
 
 #endif
 
@@ -198,11 +206,22 @@ int main(void) {
     MX_ADC1_Init();
     /* USER CODE BEGIN 2 */
 
-    HAL_GPIO_WritePin(BOARD_LED_GPIO_Port, BOARD_LED_Pin, GPIO_PIN_SET);
+    HAL_GPIO_WritePin(BOARD_LED_GPIO_Port, BOARD_LED_Pin, GPIO_PIN_SET);  // the board led has inverse logic
 
-#if PED_USB_DEVICE_CLASS == PED_USB_CDC_CLASS || PED_USB_DEVICE_CLASS == PED_USB_MIDI_CLASS
+    /* 
+        while(1) {
+            HAL_GPIO_WritePin(BOARD_LED_GPIO_Port, BOARD_LED_Pin, GPIO_PIN_SET);
+            HAL_Delay(1000);
+            HAL_GPIO_WritePin(BOARD_LED_GPIO_Port, BOARD_LED_Pin, GPIO_PIN_RESET);
+            HAL_Delay(100);
+        } 
+    */
+
+#if PED_USB_DEVICE_CLASS == PED_USB_CDC_CLASS
     tusb_rhport_init_t dev_init = {.role = TUSB_ROLE_DEVICE, .speed = TUSB_SPEED_AUTO};
     tusb_init(BOARD_TUD_RHPORT, &dev_init);
+#elif PED_USB_DEVICE_CLASS == PED_USB_MIDI_CLASS
+    midi_player_init();
 #endif
 
     lcd_1602a_init();
@@ -211,11 +230,11 @@ int main(void) {
     uint32_t pstate = 0;
     uint32_t nstate = 0;
 
-#if SOUND_PLAYER == PED_ENABLED
-    player_init();
+#if SOUND_PLAYER_I2S == PED_ENABLED
+    sound_player_init();
 #endif
 
-    const bitnotes_t melody[] = {
+    const uint32_t melody[] = {
         (1 << bitnote_c1),
         (1 << bitnote_d1),
         (1 << bitnote_e1),
@@ -234,6 +253,9 @@ int main(void) {
     const size_t note_duration_ms = 1000;
     size_t last_changed_note      = HAL_GetTick();
 
+    // As requestes by the MIDI example
+    HAL_Delay(286);
+
     /* USER CODE END 2 */
 
     /* Infinite loop */
@@ -243,15 +265,6 @@ int main(void) {
 
         /* USER CODE BEGIN 3 */
 
-#if PED_USB_DEVICE_CLASS == PED_USB_CDC_CLASS
-        tud_task();
-        cdc_example_keep_alive_task();
-#elif PED_USB_DEVICE_CLASS == PED_USB_MIDI_CLASS
-        tud_task();
-        // GPIO_PinState button = HAL_GPIO_ReadPin(USER_BUTTON_GPIO_Port, USER_BUTTON_Pin);
-        midi_task();
-#endif
-
 #if HARDWARE_KEYS_ENABLED == PED_ENABLED
         nstate = read_keys();
 #else
@@ -260,14 +273,36 @@ int main(void) {
             nstate            = melody[melody_ptr];
             melody_ptr++;
             melody_ptr %= melody_len;
+
+            char log_str[BUFSIZ];
+            ssize_t log_str_ptr = 0;
+            for (size_t isem = 1; isem <= n_bitnotes; isem++) {
+                if (nstate >> (n_bitnotes - isem) & 1) {
+                    ssize_t to_add = snprintf(log_str + log_str_ptr, BUFSIZ - log_str_ptr, "%s ", note_names[n_bitnotes - isem]);
+                    log_str_ptr += to_add;
+                }
+            }
+            lcd_1602a_write_text(log_str);
         }
+#endif
+
+#if PED_USB_DEVICE_CLASS == PED_USB_CDC_CLASS
+        tud_task();
+        cdc_example_keep_alive_task();
+#elif PED_USB_DEVICE_CLASS == PED_USB_MIDI_CLASS
+        tud_task();
+
+        // This is the example task
+        // midi_example_melody_task();
+
+        midi_player_update(pstate, nstate);
 #endif
 
         // play only one note in blocking mode
         // HAL_I2S_Transmit(&hi2s1, (uint16_t*) sample_D2_22kHz_corpo, SAMPLE_D2_22KHZ_CORPO_L, 10000);
 
-#if SOUND_PLAYER == PED_ENABLED
-        player_routine(pstate, nstate);
+#if SOUND_PLAYER_I2S == PED_ENABLED
+        sound_player_routine(pstate, nstate);
 #endif
         pstate = nstate;
     }
