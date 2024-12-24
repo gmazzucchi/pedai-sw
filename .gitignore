@@ -10,8 +10,7 @@
 **/Backup/*
 
 **/.vscode/*
-STM32Make.make
-Makefile
+.stm32env
 **/__pycache__/**
 binaries/**
 
