@@ -3,6 +3,7 @@
 
 #include "ped_config.h"
 
-uint32_t read_keys();
+void init_keys();
+void read_keys(bool* S);
 
 #endif  // KEY_READER_H

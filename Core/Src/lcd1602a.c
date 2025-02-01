@@ -1,5 +1,7 @@
 #include "lcd1602a.h"
 
+#if LCD1602_ENABLED == PED_ENABLED
+
 #include "main.h"
 
 #define N_DATA_LINES   (8)
@@ -171,3 +173,14 @@ void lcd_1602a_write_text(const char *str) {
     display_pointer = 0;
     lcd_1602a_select_line(0);
 }
+
+#else
+
+void lcd_1602a_init(void) {
+}
+void lcd_1602a_write_text(const char *str) {
+}
+void lcd_1602a_clear_screen(void) {
+}
+
+#endif

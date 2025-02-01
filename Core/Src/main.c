@@ -227,31 +227,45 @@ int main(void) {
     lcd_1602a_init();
     lcd_1602a_write_text("INIT");
 
-    uint32_t pstate = 0;
-    uint32_t nstate = 0;
+#if HW_KEY_ACQUISITION_MODE == HW_KEYS_MAT
+    bool pstate[N_HW_KEYS] = {0};
+    bool nstate[N_HW_KEYS] = {0};
+#else
+#error Not yet implemented
+#endif
 
 #if SOUND_PLAYER_I2S == PED_ENABLED
     sound_player_init();
 #endif
 
-    const uint32_t melody[] = {
-        (1 << bitnote_c1),
-        (1 << bitnote_d1),
-        (1 << bitnote_e1),
-        (1 << bitnote_c1),
-        (1 << bitnote_c1) | (1 << bitnote_e1),
-        (1 << bitnote_d1) | (1 << bitnote_f1),
-        (1 << bitnote_e1) | (1 << bitnote_g1),
-        (1 << bitnote_c1) | (1 << bitnote_e1),
-        (1 << bitnote_e1),
-        (1 << bitnote_f1),
-        (1 << bitnote_g1),
-        (1 << bitnote_g1),
+#if HARDWARE_KEYS_ENABLED == PED_ENABLED
+
+#if HW_KEY_ACQUISITION_MODE == HW_KEYS_MAT
+    init_keys();
+#else
+#error Not yet implemented
+#endif
+
+#else
+    const uint64_t melody[] = {
+        (1 << 32),
+        (1 << 34),
+        (1 << 36),
+        (1 << 32),
+        (1 << 32) | (1 << 36),
+        (1 << 34) | (1 << 37),
+        (1 << 36) | (1 << 39),
+        (1 << 32) | (1 << 37),
+        (1 << 36),
+        (1 << 37),
+        (1 << 39),
+        (1 << 37),
     };
     size_t melody_ptr             = 0;
     const size_t melody_len       = sizeof(melody) / sizeof(melody[0]);
     const size_t note_duration_ms = 1000;
     size_t last_changed_note      = HAL_GetTick();
+#endif
 
     // As requestes by the MIDI example
     HAL_Delay(286);
@@ -266,7 +280,7 @@ int main(void) {
         /* USER CODE BEGIN 3 */
 
 #if HARDWARE_KEYS_ENABLED == PED_ENABLED
-        nstate = read_keys();
+        read_keys(nstate);
 #else
         if (HAL_GetTick() - last_changed_note > note_duration_ms) {
             last_changed_note = HAL_GetTick();
@@ -288,7 +302,30 @@ int main(void) {
 
 #if PED_USB_DEVICE_CLASS == PED_USB_CDC_CLASS
         tud_task();
-        cdc_example_keep_alive_task();
+        
+        static uint32_t last_sent_keys = 0;
+        if (HAL_GetTick() - last_sent_keys > 200) {
+            last_sent_keys = HAL_GetTick();
+            char buffer[BUFSIZ];
+            size_t bptr = 0;
+            
+            for (size_t i = 0; i < N_HW_KEYS; i++) {
+                if (nstate[i]) buffer[bptr] = 'X'; else buffer[bptr] = '0';
+                bptr++;
+                buffer[bptr] = ' ';
+                bptr++;
+            }
+            buffer[bptr] = 0;
+            
+            tud_cdc_write_str(buffer);
+            buffer[0] = '\r';
+            buffer[1] = '\n';
+            buffer[2] = 0;
+            tud_cdc_write_str(buffer);
+            tud_cdc_write_flush();
+            memset(buffer, 0, BUFSIZ);
+        }
+        // cdc_example_keep_alive_task();
 #elif PED_USB_DEVICE_CLASS == PED_USB_MIDI_CLASS
         tud_task();
 
@@ -304,7 +341,7 @@ int main(void) {
 #if SOUND_PLAYER_I2S == PED_ENABLED
         sound_player_routine(pstate, nstate);
 #endif
-        pstate = nstate;
+        memcpy(pstate, nstate, N_HW_KEYS * sizeof(bool));
     }
     /* USER CODE END 3 */
 }
@@ -388,7 +425,7 @@ static void MX_ADC1_Init(void) {
 
     /** Configure for the selected ADC regular channel its corresponding rank in the sequencer and its sample time.
   */
-    sConfig.Channel      = ADC_CHANNEL_1;
+    sConfig.Channel      = ADC_CHANNEL_3;
     sConfig.Rank         = 1;
     sConfig.SamplingTime = ADC_SAMPLETIME_3CYCLES;
     if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK) {
@@ -535,11 +572,10 @@ static void MX_GPIO_Init(void) {
     HAL_GPIO_WritePin(GPIOC, BOARD_LED_Pin | LED_MIDI_Pin | LED_SOUND_Pin, GPIO_PIN_RESET);
 
     /*Configure GPIO pin Output Level */
-    HAL_GPIO_WritePin(GPIOA, MUX_C2_Pin | MUX_C1_Pin | MUX_C0_Pin | LCD_D6_Pin | LCD_D7_Pin, GPIO_PIN_RESET);
+    HAL_GPIO_WritePin(GPIOA, MUX_C2_Pin | MUX_C1_Pin | MUX_C0_Pin | C6_Pin | C7_Pin, GPIO_PIN_RESET);
 
     /*Configure GPIO pin Output Level */
-    HAL_GPIO_WritePin(
-        GPIOB, LCD_RS_Pin | LCD_ENABLE_Pin | LCD_D0_Pin | LCD_D1_Pin | LCD_D2_Pin | LCD_D3_Pin | LCD_D4_Pin | LCD_D5_Pin, GPIO_PIN_RESET);
+    HAL_GPIO_WritePin(GPIOB, LCD_RS_Pin | LCD_ENABLE_Pin | C0_Pin | C1_Pin | C2_Pin | C3_Pin | C4_Pin | C5_Pin, GPIO_PIN_RESET);
 
     /*Configure GPIO pins : BOARD_LED_Pin LED_MIDI_Pin LED_SOUND_Pin */
     GPIO_InitStruct.Pin   = BOARD_LED_Pin | LED_MIDI_Pin | LED_SOUND_Pin;
@@ -554,27 +590,27 @@ static void MX_GPIO_Init(void) {
     GPIO_InitStruct.Pull = GPIO_NOPULL;
     HAL_GPIO_Init(USER_BUTTON_GPIO_Port, &GPIO_InitStruct);
 
-    /*Configure GPIO pins : MUX_C2_Pin MUX_C1_Pin MUX_C0_Pin LCD_D6_Pin
-                           LCD_D7_Pin */
-    GPIO_InitStruct.Pin   = MUX_C2_Pin | MUX_C1_Pin | MUX_C0_Pin | LCD_D6_Pin | LCD_D7_Pin;
+    /*Configure GPIO pins : R0_Pin R1_Pin MUX3_DATA_Pin */
+    GPIO_InitStruct.Pin  = R0_Pin | R1_Pin | MUX3_DATA_Pin;
+    GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+    GPIO_InitStruct.Pull = GPIO_NOPULL;
+    HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
+    /*Configure GPIO pins : MUX_C2_Pin MUX_C1_Pin MUX_C0_Pin C6_Pin
+                           C7_Pin */
+    GPIO_InitStruct.Pin   = MUX_C2_Pin | MUX_C1_Pin | MUX_C0_Pin | C6_Pin | C7_Pin;
     GPIO_InitStruct.Mode  = GPIO_MODE_OUTPUT_PP;
     GPIO_InitStruct.Pull  = GPIO_NOPULL;
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
     HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
-    /*Configure GPIO pins : LCD_RS_Pin LCD_ENABLE_Pin LCD_D0_Pin LCD_D1_Pin
-                           LCD_D2_Pin LCD_D3_Pin LCD_D4_Pin LCD_D5_Pin */
-    GPIO_InitStruct.Pin   = LCD_RS_Pin | LCD_ENABLE_Pin | LCD_D0_Pin | LCD_D1_Pin | LCD_D2_Pin | LCD_D3_Pin | LCD_D4_Pin | LCD_D5_Pin;
+    /*Configure GPIO pins : LCD_RS_Pin LCD_ENABLE_Pin C0_Pin C1_Pin
+                           C2_Pin C3_Pin C4_Pin C5_Pin */
+    GPIO_InitStruct.Pin   = LCD_RS_Pin | LCD_ENABLE_Pin | C0_Pin | C1_Pin | C2_Pin | C3_Pin | C4_Pin | C5_Pin;
     GPIO_InitStruct.Mode  = GPIO_MODE_OUTPUT_PP;
     GPIO_InitStruct.Pull  = GPIO_NOPULL;
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
     HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
-
-    /*Configure GPIO pin : MUX3_DATA_Pin */
-    GPIO_InitStruct.Pin  = MUX3_DATA_Pin;
-    GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-    GPIO_InitStruct.Pull = GPIO_NOPULL;
-    HAL_GPIO_Init(MUX3_DATA_GPIO_Port, &GPIO_InitStruct);
 
     /*Configure GPIO pins : MUX6_DATA_Pin MUX1_DATA_Pin MUX2_DATA_Pin MUX5_DATA_Pin
                            MUX4_DATA_Pin */

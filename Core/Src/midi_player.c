@@ -52,7 +52,7 @@ void midi_player_update(uint32_t pstate, uint32_t nstate) {
     for (size_t is = 1; is <= n_bitnotes; is++) {
         bool note_is_released = (old_notes >> (n_bitnotes - is) & 1);
         if (note_is_released) {
-            uint8_t note_off[3] = {MIDI_NOTE_OFF | channel, (n_bitnotes - is) + midinote_c1, 0};
+            uint8_t note_off[3] = {MIDI_NOTE_OFF | channel, (n_bitnotes - is) + base_midinote, 0};
             tud_midi_stream_write(cable_num, note_off, 3);
         }
     }
@@ -61,7 +61,7 @@ void midi_player_update(uint32_t pstate, uint32_t nstate) {
     for (size_t is = 1; is <= n_bitnotes; is++) {
         bool note_is_pressed = (new_notes >> (n_bitnotes - is) & 1);
         if (note_is_pressed) {
-            uint8_t note_on[3] = {MIDI_NOTE_ON | channel, (n_bitnotes - is) + midinote_c1, 127};
+            uint8_t note_on[3] = {MIDI_NOTE_ON | channel, (n_bitnotes - is) + base_midinote, 127};
             tud_midi_stream_write(cable_num, note_on, 3);
         }
     }

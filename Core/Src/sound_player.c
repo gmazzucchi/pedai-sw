@@ -42,8 +42,6 @@ void HAL_I2S_ErrorCallback(I2S_HandleTypeDef *hi2s) {
     char log_buf[BUFSIZ];
     snprintf(log_buf, BUFSIZ, "%lu", error_code);
     lcd_1602a_write_text(log_buf);
-#warning Remove Error_Handler(); here
-    Error_Handler();
 }
 
 #if PED_PHASE_VOCODER == PED_ENABLED
@@ -219,7 +217,7 @@ size_t corpo_pitch_shifting(int16_t *curr, size_t curr_max_len, int16_t *base, s
  * @param current_note_max_len Maximum length for the note frame
  * @return size_t 
  */
-size_t compose_note(unsigned int nstate, unsigned int pstate, int16_t *current_note, size_t current_note_max_len) {
+size_t compose_note(const uint32_t nstate, const uint32_t pstate, int16_t *current_note, size_t current_note_max_len) {
     // placeholder for testing
     // memcpy(current_note, sample_D2_22kHz_corpo, SAMPLE_D2_22KHZ_CORPO_L * sizeof(uint16_t));
     // return SAMPLE_D2_22KHZ_CORPO_L;
@@ -250,7 +248,7 @@ size_t compose_note(unsigned int nstate, unsigned int pstate, int16_t *current_n
 
 #if PED_PHASE_VOCODER == PED_ENABLED
 
-    for (bitnotes_t inote = bitnote_c1; inote < n_bitnotes; inote++) {
+    for (int inote = 0; inote < n_bitnotes; inote++) {
         int bit_to_check = n_bitnotes - inote;
         if ((new_notes >> bit_to_check) & 1) {
             size_t to_add =
