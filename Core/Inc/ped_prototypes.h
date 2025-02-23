@@ -15,6 +15,8 @@
     tud_cdc_write_flush(); \
     memset(b, 0, s);
 
+#define EMPTY_PRINTLN_CDC() log_str[0] = '\r'; log_str[1] = '\n'; log_str[2] = 0; tud_cdc_write_str(log_str); tud_cdc_write_flush();
+
 uint32_t get_current_time_ms();
 
 #endif  // PED_PROTOTYPES_H

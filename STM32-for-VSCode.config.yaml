@@ -37,6 +37,8 @@ cFlags:
   - -Wall
   - -fdata-sections
   - -ffunction-sections
+  - -u _printf_float
+  # - -D ARM_ALL_FFT_TABLES
 
 cxxFlags: 
   - -fno-rtti
@@ -96,6 +98,7 @@ sourceFiles:
   - Drivers/CMSIS/DSP/Source/TransformFunctions/TransformFunctions.c
   - Drivers/CMSIS/DSP/Source/BasicMathFunctions/arm_add_q15.c
   - Drivers/CMSIS/DSP/Source/BasicMathFunctions/arm_shift_q15.c
+  - Drivers/CMSIS/DSP/Source/CommonTables/CommonTables.c
 
 
 # When no makefile is present it will show a warning pop-up.

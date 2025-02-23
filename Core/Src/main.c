@@ -32,9 +32,12 @@
 #include "lcd1602a.h"
 #include "midi_player.h"
 #include "ped_config.h"
+#include "ped_prototypes.h"
 #include "ped_types.h"
 #include "sound_player.h"
 #include "tusb.h"
+#include "arm_math.h"
+#include "dsp_tools.h"
 
 #include <stdio.h>
 
@@ -311,6 +314,38 @@ int main(void) {
             buffer[bptr] = 0;
             PRINTLN(buffer, BUFSIZ);
         }
+
+        /* 
+            // Experiments with DSP library
+            #define N (32)
+            char log_str[BUFSIZ];
+            int log_str_ptr = 0;
+
+
+            EMPTY_PRINTLN_CDC();
+            tud_cdc_write_str("----------------");
+            EMPTY_PRINTLN_CDC();
+            snprintf(log_str, BUFSIZ, "Current time = %lu \r\n", HAL_GetTick());
+            tud_cdc_write_str(log_str);
+            EMPTY_PRINTLN_CDC();
+
+            q15_t input[N] = {10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120, 130, 140, 150, 160, 
+                              10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120, 130, 140, 150, 160};
+            q15_t output[N];
+            fft(output, input, N);
+
+            for (size_t i = 0; i < N; i++) {
+                int to_add = snprintf(log_str + log_str_ptr, BUFSIZ - log_str_ptr, "%" PRIi16 " ", output[i]);
+                log_str_ptr += to_add;
+            }
+
+            tud_cdc_write_str(log_str);
+            EMPTY_PRINTLN_CDC();
+            tud_cdc_write_str(log_str);
+            EMPTY_PRINTLN_CDC(); 
+        */
+
+        tud_cdc_write_flush();
         // cdc_example_keep_alive_task();
 #elif PED_USB_DEVICE_CLASS == PED_USB_MIDI_CLASS
         tud_task();

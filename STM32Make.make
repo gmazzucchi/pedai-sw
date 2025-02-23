@@ -149,6 +149,7 @@ Core/Lib/tinyusb/src/tusb.c \
 Core/Lib/tinyusb/src/typec/usbc.c \
 Core/Src/crc.c \
 Core/Src/dma.c \
+Core/Src/dsp_tools.c \
 Core/Src/gpio.c \
 Core/Src/i2s.c \
 Core/Src/key_reader.c \
@@ -169,6 +170,7 @@ Core/Src/usb_descriptors_midi.c \
 Core/Src/usb_otg.c \
 Drivers/CMSIS/DSP/Source/BasicMathFunctions/arm_add_q15.c \
 Drivers/CMSIS/DSP/Source/BasicMathFunctions/arm_shift_q15.c \
+Drivers/CMSIS/DSP/Source/CommonTables/CommonTables.c \
 Drivers/CMSIS/DSP/Source/TransformFunctions/TransformFunctions.c \
 Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal.c \
 Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_cortex.c \
@@ -302,7 +304,7 @@ CFLAGS = $(MCU) $(C_DEFS) $(C_INCLUDES) $(OPTIMIZATION_FLAGS)
 CXXFLAGS = $(MCU) $(CXX_DEFS) $(C_INCLUDES) $(OPTIMIZATION_FLAGS)
 
 # Add additional flags
-CFLAGS += -Wall -fdata-sections -ffunction-sections 
+CFLAGS += -Wall -fdata-sections -ffunction-sections -u _printf_float 
 ASFLAGS += -Wall -fdata-sections -ffunction-sections 
 CXXFLAGS += -fno-exceptions -fno-rtti 
 
