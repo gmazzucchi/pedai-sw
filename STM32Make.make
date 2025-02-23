@@ -147,6 +147,10 @@ Core/Lib/tinyusb/src/portable/wch/dcd_ch32_usbfs.c \
 Core/Lib/tinyusb/src/portable/wch/dcd_ch32_usbhs.c \
 Core/Lib/tinyusb/src/tusb.c \
 Core/Lib/tinyusb/src/typec/usbc.c \
+Core/Src/crc.c \
+Core/Src/dma.c \
+Core/Src/gpio.c \
+Core/Src/i2s.c \
 Core/Src/key_reader.c \
 Core/Src/lcd1602a.c \
 Core/Src/main.c \
@@ -162,12 +166,11 @@ Core/Src/sysmem.c \
 Core/Src/system_stm32f4xx.c \
 Core/Src/usb_descriptors_cdc.c \
 Core/Src/usb_descriptors_midi.c \
+Core/Src/usb_otg.c \
 Drivers/CMSIS/DSP/Source/BasicMathFunctions/arm_add_q15.c \
 Drivers/CMSIS/DSP/Source/BasicMathFunctions/arm_shift_q15.c \
 Drivers/CMSIS/DSP/Source/TransformFunctions/TransformFunctions.c \
 Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal.c \
-Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_adc.c \
-Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_adc_ex.c \
 Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_cortex.c \
 Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_crc.c \
 Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_dma.c \
@@ -185,7 +188,6 @@ Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_pwr.c \
 Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_pwr_ex.c \
 Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_rcc.c \
 Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_rcc_ex.c \
-Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_ll_adc.c \
 Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_ll_usb.c
 
 

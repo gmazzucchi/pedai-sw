@@ -38,7 +38,7 @@
 
 #define N_HW_MAT_ROWS (8u)
 #define N_HW_MAT_COLS (8u)
-#define N_HW_KEYS (N_HW_MAT_ROWS * N_HW_MAT_COLS)
+#define N_HW_KEYS     (N_HW_MAT_ROWS * N_HW_MAT_COLS)
 
 #endif
 
