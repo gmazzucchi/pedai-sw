@@ -2,7 +2,7 @@
 
 #include "arm_common_tables.h"
 
-int fft(q15_t* output, q15_t* input, size_t N) {
+int fft(q15_t *output, q15_t *input, size_t N) {
     // q15_t twiddleCoef[N];
     // for (size_t i = 0; i< 3*N/4; i++) {
     //     twiddleCoef[2*i]   = cos(i * 2*PI/(float)N);
@@ -32,7 +32,5 @@ int fft(q15_t* output, q15_t* input, size_t N) {
     return 1;
 }
 
-int ifft(q15_t* output, q15_t* input, size_t N) {
-
+int ifft(q15_t *output, q15_t *input, size_t N) {
 }
-

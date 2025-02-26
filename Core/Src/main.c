@@ -28,16 +28,14 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 
+#include "arm_math.h"
+#include "dsp_tools.h"
 #include "key_reader.h"
 #include "lcd1602a.h"
 #include "midi_player.h"
 #include "ped_config.h"
-#include "ped_prototypes.h"
-#include "ped_types.h"
 #include "sound_player.h"
 #include "tusb.h"
-#include "arm_math.h"
-#include "dsp_tools.h"
 
 #include <stdio.h>
 
@@ -227,7 +225,7 @@ int main(void) {
 #error Not yet implemented
 #endif
 
-#if SOUND_PLAYER_I2S == PED_ENABLED
+#if SOUND_PLAYER_I2S != PED_DISABLED
     sound_player_init();
 #endif
 
@@ -359,10 +357,10 @@ int main(void) {
         // play only one note in blocking mode
         // HAL_I2S_Transmit(&hi2s1, (uint16_t*) sample_D2_22kHz_corpo, SAMPLE_D2_22KHZ_CORPO_L, 10000);
 
-#if SOUND_PLAYER_I2S == PED_ENABLED
+#if SOUND_PLAYER_I2S != PED_DISABLED
         sound_player_routine(pstate, nstate);
 #endif
-        memcpy(pstate, nstate, N_HW_KEYS * sizeof(bool));
+        memcpy(pstate, nstate, N_HW_KEYS * sizeof(bool));  // pstate = nstate;
     }
     /* USER CODE END 3 */
 }
@@ -421,6 +419,8 @@ void SystemClock_Config(void) {
 void Error_Handler(void) {
     /* USER CODE BEGIN Error_Handler_Debug */
     /* User can add his own implementation to report the HAL error return state */
+
+#if PED_USB_DEVICE_CLASS == PED_USB_CDC_CLASS
 #warning[JUST A WARNING] Interrupts are not disabled in Error_Handler() to allow logging
     // __disable_irq();
     static uint32_t last_msg_sent = 0;
@@ -433,6 +433,11 @@ void Error_Handler(void) {
             PRINTLN(buffer, BUFSIZ);
         }
     }
+#else
+    __disable_irq();
+    while (1)
+        ;
+#endif
     /* USER CODE END Error_Handler_Debug */
 }
 

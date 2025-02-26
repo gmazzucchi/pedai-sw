@@ -3,8 +3,6 @@
 // #include "adc.h"
 #include "main.h"
 #include "ped_config.h"
-#include "ped_prototypes.h"
-#include "ped_types.h"
 
 #define N_MUX_CONTROL_PINS (3U)
 #define N_MUX_DATA_PINS    (4U)
@@ -39,7 +37,7 @@ const static uint16_t mux_d_pins[N_MUX_DATA_PINS] = {
     MUX6_DATA_Pin,
 };
 
-static GPIO_TypeDef *cols_ports[8] = {
+static GPIO_TypeDef *cols_ports[N_HW_MAT_COLS] = {
     C7_GPIO_Port,
     C6_GPIO_Port,
     C5_GPIO_Port,
@@ -50,7 +48,7 @@ static GPIO_TypeDef *cols_ports[8] = {
     C0_GPIO_Port,
 };
 
-const static uint16_t cols_pins[8] = {
+const static uint16_t cols_pins[N_HW_MAT_COLS] = {
     C7_Pin,
     C6_Pin,
     C5_Pin,
@@ -67,7 +65,6 @@ void set_mux_addr(int addr) {
     }
 }
 
-
 int get_matrix_row_pin(int p) {
     if (p == 0) {
         return HAL_GPIO_ReadPin(R0_GPIO_Port, R0_Pin);
@@ -77,7 +74,7 @@ int get_matrix_row_pin(int p) {
         set_mux_addr(p - 2);
         return HAL_GPIO_ReadPin(RMUX_GPIO_Port, RMUX_Pin);
     }
-    return 0;
+    return 0;  // unreachable code
 }
 
 int get_mat2_pin(int p) {
@@ -102,15 +99,20 @@ void read_keys(bool *S) {
     /***
      * WITH DIODES MATRIX
     */
+    static int col_mapping[N_HW_MAT_COLS] = {0, 4, 3, 6, 5, 1, 7, 2};
     for (int c = 0; c < N_HW_MAT_COLS; c++) {
         set_matrix_column_pin(c, GPIO_PIN_SET);
         for (int r = 0; r < N_HW_MAT_ROWS; r++) {
             int v = get_matrix_row_pin(r);
+#warning Remove this check
             if (v < 0) {
                 Error_Handler();
             }
-            // S[r]  = v;  // S[c * N_HW_MAT_COLS + r] = v;
-            S[c * N_HW_MAT_COLS + r] = v;
+            // S[r]  = v; // for debug, single column only
+            // S[c * N_HW_MAT_COLS + r] = v; // without mapping
+            int pos                                      = (c * N_HW_MAT_COLS + r) % N_HW_MAT_COLS;  // -> you have to apply mapping to this
+            int offset                                   = (c * N_HW_MAT_COLS + r) / N_HW_MAT_COLS;
+            S[col_mapping[pos] * N_HW_MAT_COLS + offset] = v;
         }
         set_matrix_column_pin(c, GPIO_PIN_RESET);
     }

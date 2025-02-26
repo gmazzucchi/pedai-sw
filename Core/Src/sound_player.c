@@ -44,6 +44,8 @@ void HAL_I2S_ErrorCallback(I2S_HandleTypeDef *hi2s) {
     lcd_1602a_write_text(log_buf);
 }
 
+#if SOUND_PLAYER_I2S == SOUND_PLAYER_SAMPLED
+
 #if PED_PHASE_VOCODER == PED_ENABLED
 
 #define STFT_HOPLEN (32U)
@@ -138,7 +140,7 @@ size_t decay_pitch_shifting(int16_t *target_note, size_t target_len, int16_t *ba
     return target_len;
 }
 
-#else
+#else   // PED_PHASE_VOCODER != PED_ENABLED
 /* // WORKING PYTHON ALGORITHM
  lp = LOOP_POINT_DATA[sample]["lp_start"]
 ls = LOOP_POINT_DATA[sample]["lp_stop"]
@@ -206,7 +208,7 @@ size_t corpo_pitch_shifting(int16_t *curr, size_t curr_max_len, int16_t *base, s
     // TODO: implement also time_stretching
     return L;
 }
-#endif  // PED_PHASE_VOCODER_ENABLED
+#endif  // PED_PHASE_VOCODER == PED_ENABLED
 
 /**
  * @brief Given the set of keys, it composes the waveform data to be played via I2S
@@ -341,6 +343,30 @@ size_t compose_note(const uint32_t nstate, const uint32_t pstate, int16_t *curre
 #endif
 }
 
+#elif SOUND_PLAYER_I2S == SOUND_PLAYER_SYNTH
+
+/**
+ * @brief Given the set of keys, it composes the waveform data to be played via I2S
+ * 
+ * @param nstate The bitset for the current set of keys pressed
+ * @param pstate The bitset for the previous set of keys pressed
+ * @param current_note Frame of the note
+ * @param current_note_max_len Maximum length for the note frame
+ * @return size_t 
+ */
+size_t compose_note(bool *nstate, bool *pstate, int16_t *current_note, size_t current_note_max_len) {
+    for (size_t inote = 0; inote < N_HW_KEYS; inote++) {
+        if (nstate[inote]) {
+            // play that note
+            // float frequency = BASE_FREQ * 2 ** (inote / 12);
+            // generate_wave(adder_, frequency);
+        }
+    }
+    return current_note_max_len;
+}
+
+#endif
+
 void sound_player_init(void) {
     /* 
         // actually not needed
@@ -350,7 +376,9 @@ void sound_player_init(void) {
     */
 }
 
-void sound_player_routine(uint32_t pstate, uint32_t nstate) {
+void sound_player_routine(bool *pstate, bool *nstate) {
+    bool zero_buffer[N_HW_KEYS] = {0};
+
     if (!has_to_play_note && sai_is_transmitting) {
         // stop the sound
         HAL_I2S_DMAStop(&hi2s1);  // HAL_SAI_DMAStop(&hsai_BlockA1);
@@ -385,7 +413,7 @@ void sound_player_routine(uint32_t pstate, uint32_t nstate) {
     }
 
 #define ALL_KEYS_RELEASED (0)
-    if (pstate == ALL_KEYS_RELEASED && nstate == ALL_KEYS_RELEASED) {
+    if (memcmp(pstate, zero_buffer, N_HW_KEYS) == 0 && memcmp(nstate, zero_buffer, N_HW_KEYS) == 0) {
         // np to np
         // ensure that no note is played
         lcd_1602a_clear_screen();
@@ -393,11 +421,11 @@ void sound_player_routine(uint32_t pstate, uint32_t nstate) {
     }
     // else if (pstate == 0b1111 && nstate != 0b1111) { // Covered in the last case
     // }
-    else if (pstate != ALL_KEYS_RELEASED && nstate == ALL_KEYS_RELEASED) {
+    else if (memcmp(pstate, zero_buffer, N_HW_KEYS) != 0 && memcmp(nstate, zero_buffer, N_HW_KEYS) == 0) {
         // p to np
         // stop at the next iteration
         has_to_play_note = false;
-    } else if (pstate == nstate) {
+    } else if (memcmp(nstate, pstate, N_HW_KEYS) == 0) {
         // p same note
         // continue with the same buffer
         has_to_play_note = true;
@@ -411,5 +439,4 @@ void sound_player_routine(uint32_t pstate, uint32_t nstate) {
         sound_data_db_len[!active_b] = compose_note(nstate, pstate, sound_data_db[!active_b], MAX_NOTE_LEN);
         active_b                     = !active_b;
     }
-    pstate = nstate;
 }
