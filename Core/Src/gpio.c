@@ -55,7 +55,7 @@ void MX_GPIO_Init(void) {
     HAL_GPIO_WritePin(GPIOA, MUX_C2_Pin | MUX_C1_Pin | MUX_C0_Pin | C6_Pin | C7_Pin, GPIO_PIN_RESET);
 
     /*Configure GPIO pin Output Level */
-    HAL_GPIO_WritePin(GPIOB, LCD_RS_Pin | LCD_ENABLE_Pin | C0_Pin | C1_Pin | C2_Pin | C3_Pin | C4_Pin | C5_Pin, GPIO_PIN_RESET);
+    HAL_GPIO_WritePin(GPIOB, C0_Pin | C1_Pin | C2_Pin | C3_Pin | C4_Pin | C5_Pin, GPIO_PIN_RESET);
 
     /*Configure GPIO pins : BOARD_LED_Pin LED_MIDI_Pin LED_SOUND_Pin */
     GPIO_InitStruct.Pin   = BOARD_LED_Pin | LED_MIDI_Pin | LED_SOUND_Pin;
@@ -70,8 +70,8 @@ void MX_GPIO_Init(void) {
     GPIO_InitStruct.Pull = GPIO_NOPULL;
     HAL_GPIO_Init(USER_BUTTON_GPIO_Port, &GPIO_InitStruct);
 
-    /*Configure GPIO pins : R0_Pin R1_Pin RMUX_Pin */
-    GPIO_InitStruct.Pin  = R0_Pin | R1_Pin | RMUX_Pin;
+    /*Configure GPIO pins : R0_Pin R1_Pin R2_Pin R3_Pin */
+    GPIO_InitStruct.Pin  = R0_Pin | R1_Pin | R2_Pin | R3_Pin;
     GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
     GPIO_InitStruct.Pull = GPIO_PULLDOWN;
     HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
@@ -84,9 +84,15 @@ void MX_GPIO_Init(void) {
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
     HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
-    /*Configure GPIO pins : LCD_RS_Pin LCD_ENABLE_Pin C0_Pin C1_Pin
-                           C2_Pin C3_Pin C4_Pin C5_Pin */
-    GPIO_InitStruct.Pin   = LCD_RS_Pin | LCD_ENABLE_Pin | C0_Pin | C1_Pin | C2_Pin | C3_Pin | C4_Pin | C5_Pin;
+    /*Configure GPIO pins : R4_Pin R5_Pin R6_Pin R7_Pin */
+    GPIO_InitStruct.Pin  = R4_Pin | R5_Pin | R6_Pin | R7_Pin;
+    GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+    GPIO_InitStruct.Pull = GPIO_PULLDOWN;
+    HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+
+    /*Configure GPIO pins : C0_Pin C1_Pin C2_Pin C3_Pin
+                           C4_Pin C5_Pin */
+    GPIO_InitStruct.Pin   = C0_Pin | C1_Pin | C2_Pin | C3_Pin | C4_Pin | C5_Pin;
     GPIO_InitStruct.Mode  = GPIO_MODE_OUTPUT_PP;
     GPIO_InitStruct.Pull  = GPIO_NOPULL;
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
@@ -98,9 +104,8 @@ void MX_GPIO_Init(void) {
     GPIO_InitStruct.Pull = GPIO_NOPULL;
     HAL_GPIO_Init(MUX3_DATA_GPIO_Port, &GPIO_InitStruct);
 
-    /*Configure GPIO pins : MUX6_DATA_Pin MUX1_DATA_Pin MUX2_DATA_Pin MUX5_DATA_Pin
-                           MUX4_DATA_Pin */
-    GPIO_InitStruct.Pin  = MUX6_DATA_Pin | MUX1_DATA_Pin | MUX2_DATA_Pin | MUX5_DATA_Pin | MUX4_DATA_Pin;
+    /*Configure GPIO pins : MUX1_DATA_Pin MUX2_DATA_Pin MUX4_DATA_Pin */
+    GPIO_InitStruct.Pin  = MUX1_DATA_Pin | MUX2_DATA_Pin | MUX4_DATA_Pin;
     GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
     GPIO_InitStruct.Pull = GPIO_NOPULL;
     HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);

@@ -24,8 +24,6 @@ static GPIO_TypeDef *mux_d_ports[N_MUX_DATA_PINS] = {
     MUX2_DATA_GPIO_Port,
     MUX3_DATA_GPIO_Port,
     MUX4_DATA_GPIO_Port,
-    MUX5_DATA_GPIO_Port,
-    MUX6_DATA_GPIO_Port,
 };
 
 const static uint16_t mux_d_pins[N_MUX_DATA_PINS] = {
@@ -33,30 +31,50 @@ const static uint16_t mux_d_pins[N_MUX_DATA_PINS] = {
     MUX2_DATA_Pin,
     MUX3_DATA_Pin,
     MUX4_DATA_Pin,
-    MUX5_DATA_Pin,
-    MUX6_DATA_Pin,
 };
 
 static GPIO_TypeDef *cols_ports[N_HW_MAT_COLS] = {
-    C7_GPIO_Port,
-    C6_GPIO_Port,
-    C5_GPIO_Port,
-    C4_GPIO_Port,
-    C3_GPIO_Port,
-    C2_GPIO_Port,
-    C1_GPIO_Port,
     C0_GPIO_Port,
+    C1_GPIO_Port,
+    C2_GPIO_Port,
+    C3_GPIO_Port,
+    C4_GPIO_Port,
+    C5_GPIO_Port,
+    C6_GPIO_Port,
+    C7_GPIO_Port,
 };
 
 const static uint16_t cols_pins[N_HW_MAT_COLS] = {
-    C7_Pin,
-    C6_Pin,
-    C5_Pin,
-    C4_Pin,
-    C3_Pin,
-    C2_Pin,
-    C1_Pin,
     C0_Pin,
+    C1_Pin,
+    C2_Pin,
+    C3_Pin,
+    C4_Pin,
+    C5_Pin,
+    C6_Pin,
+    C7_Pin,
+};
+
+static GPIO_TypeDef *rows_ports[N_HW_MAT_ROWS] = {
+    R0_GPIO_Port,
+    R1_GPIO_Port,
+    R2_GPIO_Port,
+    R3_GPIO_Port,
+    R4_GPIO_Port,
+    R5_GPIO_Port,
+    R6_GPIO_Port,
+    R7_GPIO_Port,
+};
+
+const static uint16_t rows_pins[N_HW_MAT_ROWS] = {
+    R0_Pin,
+    R1_Pin,
+    R2_Pin,
+    R3_Pin,
+    R4_Pin,
+    R5_Pin,
+    R6_Pin,
+    R7_Pin,
 };
 
 void set_mux_addr(int addr) {
@@ -66,26 +84,10 @@ void set_mux_addr(int addr) {
 }
 
 int get_matrix_row_pin(int p) {
-    if (p == 0) {
-        return HAL_GPIO_ReadPin(R0_GPIO_Port, R0_Pin);
-    } else if (p == 1) {
-        return HAL_GPIO_ReadPin(R1_GPIO_Port, R1_Pin);
-    } else {
-        set_mux_addr(p - 2);
-        return HAL_GPIO_ReadPin(RMUX_GPIO_Port, RMUX_Pin);
-    }
-    return 0;  // unreachable code
-}
-
-int get_mat2_pin(int p) {
-    if (p < 0 || p > 7)
-        return -1;
-    return HAL_GPIO_ReadPin(cols_ports[p], cols_pins[p]);
+    return HAL_GPIO_ReadPin(rows_ports[p], rows_pins[p]);
 }
 
 void set_matrix_column_pin(int p, int s) {
-    if (p < 0 || p > 7)
-        return;
     HAL_GPIO_WritePin(cols_ports[p], cols_pins[p], s);
 }
 
@@ -93,28 +95,26 @@ void init_keys() {
     for (int c = 0; c < N_HW_MAT_COLS; c++) {
         set_matrix_column_pin(c, GPIO_PIN_RESET);
     }
+    // set_matrix_column_pin(0, GPIO_PIN_SET);
 }
 
 void read_keys(bool *S) {
     /***
      * WITH DIODES MATRIX
     */
-    static int col_mapping[N_HW_MAT_COLS] = {0, 4, 3, 6, 5, 1, 7, 2};
     for (int c = 0; c < N_HW_MAT_COLS; c++) {
         set_matrix_column_pin(c, GPIO_PIN_SET);
         for (int r = 0; r < N_HW_MAT_ROWS; r++) {
-            int v = get_matrix_row_pin(r);
-#warning Remove this check
-            if (v < 0) {
-                Error_Handler();
-            }
-            // S[r]  = v; // for debug, single column only
-            // S[c * N_HW_MAT_COLS + r] = v; // without mapping
-            int pos                                      = (c * N_HW_MAT_COLS + r) % N_HW_MAT_COLS;  // -> you have to apply mapping to this
-            int offset                                   = (c * N_HW_MAT_COLS + r) / N_HW_MAT_COLS;
-            S[col_mapping[pos] * N_HW_MAT_COLS + offset] = v;
+            int v                           = get_matrix_row_pin(r);
+            int pos                         = (c * N_HW_MAT_COLS + r) % N_HW_MAT_COLS;  // -> you have to apply mapping to this
+            int offset                      = (c * N_HW_MAT_COLS + r) / N_HW_MAT_COLS;
+            S[pos * N_HW_MAT_COLS + offset] = v;
         }
         set_matrix_column_pin(c, GPIO_PIN_RESET);
+    }
+    // the last 8 must be ignored
+    for (int inote = 1; inote <= 8; inote++) {
+        S[N_HW_MAT_COLS * N_HW_MAT_ROWS - inote] = 0;
     }
 
     /***

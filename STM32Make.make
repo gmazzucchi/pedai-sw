@@ -171,6 +171,7 @@ Core/Src/usb_otg.c \
 Drivers/CMSIS/DSP/Source/BasicMathFunctions/arm_add_q15.c \
 Drivers/CMSIS/DSP/Source/BasicMathFunctions/arm_shift_q15.c \
 Drivers/CMSIS/DSP/Source/CommonTables/CommonTables.c \
+Drivers/CMSIS/DSP/Source/FastMathFunctions/FastMathFunctions.c \
 Drivers/CMSIS/DSP/Source/TransformFunctions/TransformFunctions.c \
 Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal.c \
 Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_cortex.c \

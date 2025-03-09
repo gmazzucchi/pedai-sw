@@ -355,11 +355,41 @@ size_t compose_note(const uint32_t nstate, const uint32_t pstate, int16_t *curre
  * @return size_t 
  */
 size_t compose_note(bool *nstate, bool *pstate, int16_t *current_note, size_t current_note_max_len) {
+#define AMPLITUDE 128
+    memset(current_note, 0, current_note_max_len * sizeof(int16_t));
+
+    static size_t is_offset[N_HW_KEYS] = {0};
+
+    bool keep_notes[N_HW_KEYS];  // = nstate & pstate;
     for (size_t inote = 0; inote < N_HW_KEYS; inote++) {
-        if (nstate[inote]) {
-            // play that note
-            // float frequency = BASE_FREQ * 2 ** (inote / 12);
-            // generate_wave(adder_, frequency);
+        keep_notes[inote] = nstate[inote] & pstate[inote];
+    }
+
+    bool new_notes[N_HW_KEYS];  // nstate ^ keep_notes;
+    for (size_t inote = 0; inote < N_HW_KEYS; inote++) {
+        new_notes[inote] = nstate[inote] ^ pstate[inote];
+    }
+
+    bool old_notes[N_HW_KEYS];  // pstate ^ keep_notes;
+    for (size_t inote = 0; inote < N_HW_KEYS; inote++) {
+        old_notes[inote] = pstate[inote] ^ keep_notes[inote];
+    }
+
+    for (size_t inote = 0; inote < N_HW_KEYS; inote++) {
+        if (keep_notes[inote] || new_notes[inote]) {
+            const double cfreq      = BASE_FREQUENCY * powl(2, (inote / 12.0));
+            const size_t cis_offset = 0;  // is_offset[inote]; // doesn't work for the above optimization layer
+            for (size_t ris = 0; ris < current_note_max_len; ris++) {
+                const size_t is            = ris + cis_offset;
+                const double sample_period = AUDIO_FREQUENCY_HZ / cfreq;
+                tmp_adder[ris]             = arm_sin_q15(2 * PI * is / sample_period) * AMPLITUDE;
+            }
+            is_offset[inote] += current_note_max_len;
+            arm_add_q15(tmp_adder, current_note, current_note, current_note_max_len);
+            memset(tmp_adder, 0, current_note_max_len * sizeof(int16_t));
+        }
+        if (old_notes[inote]) {
+            is_offset[inote] = 0;
         }
     }
     return current_note_max_len;

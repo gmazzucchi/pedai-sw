@@ -89,6 +89,30 @@ void cdc_example_keep_alive_task(void) {
     }
 }
 
+volatile bool tud_cdc_tx_is_completed = true;
+
+void tud_cdc_tx_complete_cb(uint8_t itf) {
+    tud_cdc_tx_is_completed = true;
+}
+
+void usb_write(const char *str_base) {
+    char *str = str_base;
+    while (strlen(str) > 64) {
+        tud_cdc_n_write(0, str, 64 * sizeof(char));
+        tud_cdc_write_flush();
+        str += 64 * sizeof(char);
+    }
+    size_t len = strlen(str);
+    tud_cdc_n_write(0, str, len * sizeof(char));
+    tud_cdc_write_flush();
+    char tmpbuf[2];
+    tmpbuf[0] = '\r';
+    tmpbuf[1] = '\n';
+    tmpbuf[2] = '\0';
+    tud_cdc_n_write(0, tmpbuf, 2 * sizeof(char));
+    tud_cdc_write_flush();
+}
+
 #elif PED_USB_DEVICE_CLASS == PED_USB_MIDI_CLASS
 
 /* 
@@ -238,24 +262,23 @@ int main(void) {
 #endif
 
 #else
-    const uint64_t melody[] = {
-        (1 << 32),
-        (1 << 34),
-        (1 << 36),
-        (1 << 32),
-        (1 << 32) | (1 << 36),
-        (1 << 34) | (1 << 37),
-        (1 << 36) | (1 << 39),
-        (1 << 32) | (1 << 37),
-        (1 << 36),
-        (1 << 37),
-        (1 << 39),
-        (1 << 37),
-    };
-    size_t melody_ptr             = 0;
-    const size_t melody_len       = sizeof(melody) / sizeof(melody[0]);
-    const size_t note_duration_ms = 1000;
-    size_t last_changed_note      = HAL_GetTick();
+    size_t melody_ptr                  = 0;
+#define melody_len 12
+    const size_t note_duration_ms      = 1000;
+    size_t last_changed_note           = HAL_GetTick();
+    bool melody[melody_len][N_HW_KEYS] = {0};
+    melody[0][32]                      = 1;
+    melody[1][34]                      = 1;
+    melody[2][36]                      = 1;
+    melody[3][32]                      = 1;
+    melody[4][32]                      = 1;
+    melody[5][34]                      = 1;
+    melody[6][36]                      = 1;
+    melody[7][32]                      = 1;
+    melody[8][36]                      = 1;
+    melody[9][37]                      = 1;
+    melody[10][39]                     = 1;
+    melody[11][37]                     = 1;
 #endif
 
     // As requestes by the MIDI example
@@ -275,75 +298,74 @@ int main(void) {
 #else
         if (HAL_GetTick() - last_changed_note > note_duration_ms) {
             last_changed_note = HAL_GetTick();
-            nstate            = melody[melody_ptr];
+            memcpy(nstate, melody[melody_ptr], N_HW_KEYS * sizeof(bool));
             melody_ptr++;
             melody_ptr %= melody_len;
 
-            char log_str[BUFSIZ];
-            ssize_t log_str_ptr = 0;
-            for (size_t isem = 1; isem <= n_bitnotes; isem++) {
-                if (nstate >> (n_bitnotes - isem) & 1) {
-                    ssize_t to_add = snprintf(log_str + log_str_ptr, BUFSIZ - log_str_ptr, "%s ", note_names[n_bitnotes - isem]);
-                    log_str_ptr += to_add;
-                }
-            }
-            lcd_1602a_write_text(log_str);
+            // char log_str[BUFSIZ];
+            // ssize_t log_str_ptr = 0;
+            // for (size_t isem = 1; isem <= N_HW_KEYS; isem++) {
+            // if (nstate[isem]) {
+            // ssize_t to_add = snprintf(log_str + log_str_ptr, BUFSIZ - log_str_ptr, "%s ", note_names[isem]);
+            // log_str_ptr += to_add;
+            // }
+            // }
+            // lcd_1602a_write_text(log_str);
         }
 #endif
 
 #if PED_USB_DEVICE_CLASS == PED_USB_CDC_CLASS
         tud_task();
 
-        static uint32_t last_sent_keys = 0;
-        if (HAL_GetTick() - last_sent_keys > 200) {
-            last_sent_keys      = HAL_GetTick();
-            char buffer[BUFSIZ] = {0};
-            size_t bptr         = 0;
-
-            for (size_t i = 0; i < N_HW_KEYS; i++) {
-                if (nstate[i]) {
-                    size_t to_add = snprintf(buffer + bptr, BUFSIZ, "X");
-                    bptr += to_add;
-                } else {
-                    size_t to_add = snprintf(buffer + bptr, BUFSIZ, "0");
-                    bptr += to_add;
-                }
-            }
-            buffer[bptr] = 0;
-            PRINTLN(buffer, BUFSIZ);
-        }
-
         /* 
-            // Experiments with DSP library
-            #define N (32)
+        *   static uint32_t last_sent_keys = 0;
+        *   if (HAL_GetTick() - last_sent_keys > 200) {
+        *       last_sent_keys      = HAL_GetTick();
+        *       char buffer[BUFSIZ] = {0};
+        *       size_t bptr         = 0;
+        *       for (size_t i = 0; i < N_HW_KEYS; i++) {
+        *           if (nstate[i]) {
+        *               size_t to_add = snprintf(buffer + bptr, BUFSIZ, "X");
+        *               bptr += to_add;
+        *           } else {
+        *               size_t to_add = snprintf(buffer + bptr, BUFSIZ, "0");
+        *               bptr += to_add;
+        *           }
+        *       }
+        *       buffer[bptr] = 0;
+        *       PRINTLN(buffer, BUFSIZ);
+        *   } 
+        */
+
+// Experiments with DSP library
+#define N (32)
+
+        // while (!tud_cdc_tx_is_completed);
+
+        static uint32_t last_sent = 0;
+        if (HAL_GetTick() - last_sent > 500) {
+            last_sent = HAL_GetTick();
+
+            tud_cdc_tx_is_completed = false;
             char log_str[BUFSIZ];
             int log_str_ptr = 0;
 
-
-            EMPTY_PRINTLN_CDC();
-            tud_cdc_write_str("----------------");
-            EMPTY_PRINTLN_CDC();
-            snprintf(log_str, BUFSIZ, "Current time = %lu \r\n", HAL_GetTick());
-            tud_cdc_write_str(log_str);
-            EMPTY_PRINTLN_CDC();
-
-            q15_t input[N] = {10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120, 130, 140, 150, 160, 
-                              10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120, 130, 140, 150, 160};
-            q15_t output[N];
-            fft(output, input, N);
-
+            q15_t input[N];
             for (size_t i = 0; i < N; i++) {
-                int to_add = snprintf(log_str + log_str_ptr, BUFSIZ - log_str_ptr, "%" PRIi16 " ", output[i]);
-                log_str_ptr += to_add;
+                input[i] = i;
             }
+            q15_t output[N];
+            if (!fft(output, input, N)) {
+                snprintf(log_str, BUFSIZ, "FFT error");
+            } else {
+                for (size_t i = 0; i < N; i++) {
+                    int to_add = snprintf(log_str + log_str_ptr, BUFSIZ - log_str_ptr, "%" PRIi16 " ", output[i]);
+                    log_str_ptr += to_add;
+                }
+            }
+            usb_write(log_str);
+        }
 
-            tud_cdc_write_str(log_str);
-            EMPTY_PRINTLN_CDC();
-            tud_cdc_write_str(log_str);
-            EMPTY_PRINTLN_CDC(); 
-        */
-
-        tud_cdc_write_flush();
         // cdc_example_keep_alive_task();
 #elif PED_USB_DEVICE_CLASS == PED_USB_MIDI_CLASS
         tud_task();
@@ -427,10 +449,10 @@ void Error_Handler(void) {
     while (1) {
         tud_task();
         if (HAL_GetTick() - last_msg_sent > 1000) {
-            last_msg_sent = HAL_GetTick();
-            char buffer[BUFSIZ];
-            snprintf(buffer, BUFSIZ, "PEDAL ERROR!!!");
-            PRINTLN(buffer, BUFSIZ);
+            // last_msg_sent = HAL_GetTick();
+            // char buffer[BUFSIZ];
+            // snprintf(buffer, BUFSIZ, "PEDAL ERROR!!!");
+            // PRINTLN(buffer, BUFSIZ);
         }
     }
 #else

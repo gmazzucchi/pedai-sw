@@ -99,6 +99,7 @@ sourceFiles:
   - Drivers/CMSIS/DSP/Source/BasicMathFunctions/arm_add_q15.c
   - Drivers/CMSIS/DSP/Source/BasicMathFunctions/arm_shift_q15.c
   - Drivers/CMSIS/DSP/Source/CommonTables/CommonTables.c
+  - Drivers/CMSIS/DSP/Source/FastMathFunctions/FastMathFunctions.c
 
 
 # When no makefile is present it will show a warning pop-up.
