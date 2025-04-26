@@ -213,29 +213,29 @@ size_t corpo_pitch_shifting(int16_t *curr, size_t curr_max_len, int16_t *base, s
 /**
  * @brief Given the set of keys, it composes the waveform data to be played via I2S
  * 
- * @param nstate The bitset for the current set of keys pressed
- * @param pstate The bitset for the previous set of keys pressed
+ * @param nstate_keys The bitset for the current set of keys pressed
+ * @param pstate_keys The bitset for the previous set of keys pressed
  * @param current_note Frame of the note
  * @param current_note_max_len Maximum length for the note frame
  * @return size_t 
  */
-size_t compose_note(const uint32_t nstate, const uint32_t pstate, int16_t *current_note, size_t current_note_max_len) {
+size_t compose_note(const uint32_t nstate_keys, const uint32_t pstate_keys, int16_t *current_note, size_t current_note_max_len) {
     // placeholder for testing
     // memcpy(current_note, sample_D2_22kHz_corpo, SAMPLE_D2_22KHZ_CORPO_L * sizeof(uint16_t));
     // return SAMPLE_D2_22KHZ_CORPO_L;
 
     /***
      * for example:
-     * pstate 0110111 // keys before
-     * nstate 1010011 // keys now
+     * pstate_keys 0110111 // keys before
+     * nstate_keys 1010011 // keys now
      * 
      * keep_n 0010011 // keys held down
      * new_ns 1000100 // keys just pressed
      * old_ns 0100100 // keys just released
      */
-    const uint32_t keep_notes = nstate & pstate;      // do the corpo
-    const uint32_t new_notes  = nstate ^ keep_notes;  // do the attacco
-    const uint32_t old_notes  = pstate ^ keep_notes;  // do the rilascio
+    const uint32_t keep_notes = nstate_keys & pstate_keys;  // do the corpo
+    const uint32_t new_notes  = nstate_keys ^ keep_notes;   // do the attacco
+    const uint32_t old_notes  = pstate_keys ^ keep_notes;   // do the rilascio
     int16_t tmp_adder[MAX_NOTE_LEN];
     int16_t tmp_time_stretcher[MAX_NOTE_LEN];
     size_t tmp_adder_len          = 0;
@@ -275,7 +275,7 @@ size_t compose_note(const uint32_t nstate, const uint32_t pstate, int16_t *curre
             note_buffer_position[inote] = 0;
         }
 
-        if ((nstate >> bit_to_check) & 1) {
+        if ((nstate_keys >> bit_to_check) & 1) {
             int to_add = snprintf(display_notes_buf + display_ptr, BUFSIZ - display_ptr, "%s ", note_names[inote]);
             display_ptr += to_add;
         }
@@ -297,7 +297,7 @@ size_t compose_note(const uint32_t nstate, const uint32_t pstate, int16_t *curre
         int bit_to_check = n_bitnotes - inote;
         /* 
             As it should be...
-            if ((nstate >> isem) & 1) {
+            if ((nstate_keys >> isem) & 1) {
                 int to_add = snprintf(display_notes_buf + display_ptr, BUFSIZ - display_ptr, "%s ", note_names[note_d + isem]);
                 display_ptr += to_add;
             }
@@ -328,7 +328,7 @@ size_t compose_note(const uint32_t nstate, const uint32_t pstate, int16_t *curre
         }
     }
 
-    // int to_add = snprintf(display_notes_buf + display_ptr, BUFSIZ - display_ptr, "%lu %lu %lu P %u N %u", keep_notes, new_notes, old_notes, pstate, nstate);
+    // int to_add = snprintf(display_notes_buf + display_ptr, BUFSIZ - display_ptr, "%lu %lu %lu P %u N %u", keep_notes, new_notes, old_notes, pstate_keys, nstate_keys);
     // display_ptr += to_add;
     lcd_1602a_write_text(display_notes_buf);
 
@@ -348,31 +348,31 @@ size_t compose_note(const uint32_t nstate, const uint32_t pstate, int16_t *curre
 /**
  * @brief Given the set of keys, it composes the waveform data to be played via I2S
  * 
- * @param nstate The bitset for the current set of keys pressed
- * @param pstate The bitset for the previous set of keys pressed
+ * @param nstate_keys The bitset for the current set of keys pressed
+ * @param pstate_keys The bitset for the previous set of keys pressed
  * @param current_note Frame of the note
  * @param current_note_max_len Maximum length for the note frame
  * @return size_t 
  */
-size_t compose_note(bool *nstate, bool *pstate, int16_t *current_note, size_t current_note_max_len) {
+size_t compose_note(bool *nstate_keys, bool *pstate_keys, int16_t *current_note, size_t current_note_max_len) {
 #define AMPLITUDE 128
     memset(current_note, 0, current_note_max_len * sizeof(int16_t));
 
     static size_t is_offset[N_HW_KEYS] = {0};
 
-    bool keep_notes[N_HW_KEYS];  // = nstate & pstate;
+    bool keep_notes[N_HW_KEYS];  // = nstate_keys & pstate_keys;
     for (size_t inote = 0; inote < N_HW_KEYS; inote++) {
-        keep_notes[inote] = nstate[inote] & pstate[inote];
+        keep_notes[inote] = nstate_keys[inote] & pstate_keys[inote];
     }
 
-    bool new_notes[N_HW_KEYS];  // nstate ^ keep_notes;
+    bool new_notes[N_HW_KEYS];  // nstate_keys ^ keep_notes;
     for (size_t inote = 0; inote < N_HW_KEYS; inote++) {
-        new_notes[inote] = nstate[inote] ^ pstate[inote];
+        new_notes[inote] = nstate_keys[inote] ^ pstate_keys[inote];
     }
 
-    bool old_notes[N_HW_KEYS];  // pstate ^ keep_notes;
+    bool old_notes[N_HW_KEYS];  // pstate_keys ^ keep_notes;
     for (size_t inote = 0; inote < N_HW_KEYS; inote++) {
-        old_notes[inote] = pstate[inote] ^ keep_notes[inote];
+        old_notes[inote] = pstate_keys[inote] ^ keep_notes[inote];
     }
 
     for (size_t inote = 0; inote < N_HW_KEYS; inote++) {
@@ -406,7 +406,7 @@ void sound_player_init(void) {
     */
 }
 
-void sound_player_routine(bool *pstate, bool *nstate) {
+void sound_player_routine(bool *pstate_keys, bool *nstate_keys) {
     bool zero_buffer[N_HW_KEYS] = {0};
 
     if (!has_to_play_note && sai_is_transmitting) {
@@ -443,19 +443,19 @@ void sound_player_routine(bool *pstate, bool *nstate) {
     }
 
 #define ALL_KEYS_RELEASED (0)
-    if (memcmp(pstate, zero_buffer, N_HW_KEYS) == 0 && memcmp(nstate, zero_buffer, N_HW_KEYS) == 0) {
+    if (memcmp(pstate_keys, zero_buffer, N_HW_KEYS) == 0 && memcmp(nstate_keys, zero_buffer, N_HW_KEYS) == 0) {
         // np to np
         // ensure that no note is played
         lcd_1602a_clear_screen();
         has_to_play_note = false;
     }
-    // else if (pstate == 0b1111 && nstate != 0b1111) { // Covered in the last case
+    // else if (pstate_keys == 0b1111 && nstate_keys != 0b1111) { // Covered in the last case
     // }
-    else if (memcmp(pstate, zero_buffer, N_HW_KEYS) != 0 && memcmp(nstate, zero_buffer, N_HW_KEYS) == 0) {
+    else if (memcmp(pstate_keys, zero_buffer, N_HW_KEYS) != 0 && memcmp(nstate_keys, zero_buffer, N_HW_KEYS) == 0) {
         // p to np
         // stop at the next iteration
         has_to_play_note = false;
-    } else if (memcmp(nstate, pstate, N_HW_KEYS) == 0) {
+    } else if (memcmp(nstate_keys, pstate_keys, N_HW_KEYS) == 0) {
         // p same note
         // continue with the same buffer
         has_to_play_note = true;
@@ -466,7 +466,7 @@ void sound_player_routine(bool *pstate, bool *nstate) {
         // construct the note in the inactive buffer and then swap the buffer at the next iteration
         // has_to_play_note                         = true;
         has_to_change_note           = true;
-        sound_data_db_len[!active_b] = compose_note(nstate, pstate, sound_data_db[!active_b], MAX_NOTE_LEN);
+        sound_data_db_len[!active_b] = compose_note(nstate_keys, pstate_keys, sound_data_db[!active_b], MAX_NOTE_LEN);
         active_b                     = !active_b;
     }
 }

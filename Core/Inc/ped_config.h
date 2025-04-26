@@ -31,10 +31,6 @@
 
 #define HARDWARE_KEYS_ENABLED (PED_ENABLED)
 
-// #if HARDWARE_KEYS_ENABLED == PED_ENABLED
-/***
- * Different modes on how acquire the key signals
- */
 #define HW_KEYS_MUX (0)
 #define HW_KEYS_MAT (1)
 
@@ -46,34 +42,7 @@
 
 #define N_HW_PEDAL_KEYS (25U)
 
-// #endif
-
-// prototypes
-
 #define to_mV(raw_value) (float)raw_value * (3.3f / 4095.0f)
-
-// TODO: if serial
-
-/*
-#define PRINTLN(b, s)      \
-    tud_cdc_write_str(b);  \
-    tud_cdc_write_flush(); \
-    b[0] = '\r';           \
-    b[1] = '\n';           \
-    b[2] = 0;              \
-    tud_cdc_write_str(b);  \
-    tud_cdc_write_flush(); \
-    memset(b, 0, s);
-*/
-
-/* 
-    #define EMPTY_PRINTLN_CDC()     \
-        log_str[0] = '\r';          \
-        log_str[1] = '\n';          \
-        log_str[2] = 0;             \
-        tud_cdc_write_str(log_str); \
-        tud_cdc_write_flush(); 
-*/
 
 uint32_t get_current_time_ms();
 

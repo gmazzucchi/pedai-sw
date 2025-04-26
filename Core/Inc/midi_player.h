@@ -4,6 +4,6 @@
 #include "ped_config.h"
 
 void midi_player_init();
-void midi_player_update(bool *pstate, bool *nstate, bool *pstate_pedals, bool *nstate_pedals);
+void midi_player_update(bool *pstate_keys, bool *nstate_keys, bool *pstate_pedals, bool *nstate_pedals);
 
 #endif  // MIDI_PLAYER_H

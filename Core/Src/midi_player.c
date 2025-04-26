@@ -12,7 +12,7 @@ void midi_player_init() {
     tusb_init(BOARD_TUD_RHPORT, &dev_init);
 }
 
-void midi_player_update(bool *pstate, bool *nstate, bool *pstate_pedals, bool *nstate_pedals) {
+void midi_player_update(bool *pstate_keys, bool *nstate_keys, bool *pstate_pedals, bool *nstate_pedals) {
     /* 
         // This means only one HAL_Delay(286) at the program start
         static uint32_t start_ms = 0;
@@ -35,31 +35,31 @@ void midi_player_update(bool *pstate, bool *nstate, bool *pstate_pedals, bool *n
     // KEYS
     /***
         This is an example of the logic:
-        pstate 0110111 // keys before
-        nstate 1010011 // keys now
+        pstate_keys 0110111 // keys before
+        nstate_keys 1010011 // keys now
 
         keep_n 0010011 // keys held down
         new_ns 1000100 // keys just pressed
         old_ns 0100100 // keys just released
      */
-    // const uint32_t keep_notes = nstate & pstate;      // do the corpo
-    // const uint32_t new_notes  = nstate ^ keep_notes;  // do the attacco
-    // const uint32_t old_notes  = pstate ^ keep_notes;  // do the rilascio
+    // const uint32_t keep_notes = nstate_keys & pstate_keys;      // do the corpo
+    // const uint32_t new_notes  = nstate_keys ^ keep_notes;  // do the attacco
+    // const uint32_t old_notes  = pstate_keys ^ keep_notes;  // do the rilascio
 
     /***
      * Same logic but using the arrays
      */
     bool keep_notes[N_HW_KEYS];
     for (size_t inote = 0; inote < N_HW_KEYS; inote++) {
-        keep_notes[inote] = nstate[inote] && pstate[inote];
+        keep_notes[inote] = nstate_keys[inote] && pstate_keys[inote];
     }
     bool new_notes[N_HW_KEYS];
     for (size_t inote = 0; inote < N_HW_KEYS; inote++) {
-        new_notes[inote] = (nstate[inote] ^ keep_notes[inote]) & 1;
+        new_notes[inote] = (nstate_keys[inote] ^ keep_notes[inote]) & 1;
     }
     bool old_notes[N_HW_KEYS];
     for (size_t inote = 0; inote < N_HW_KEYS; inote++) {
-        old_notes[inote] = (pstate[inote] ^ keep_notes[inote]) & 1;
+        old_notes[inote] = (pstate_keys[inote] ^ keep_notes[inote]) & 1;
     }
 
     uint8_t const cable_num      = 0;  // MIDI jack associated with USB endpoint

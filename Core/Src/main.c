@@ -243,8 +243,8 @@ int main(void) {
     lcd_1602a_write_text("INIT");
 
 #if HW_KEY_ACQUISITION_MODE == HW_KEYS_MAT
-    bool pstate[N_HW_KEYS]              = {0};
-    bool nstate[N_HW_KEYS]              = {0};
+    bool pstate_keys[N_HW_KEYS]         = {0};
+    bool nstate_keys[N_HW_KEYS]         = {0};
     bool pstate_pedals[N_HW_PEDAL_KEYS] = {0};
     bool nstate_pedals[N_HW_PEDAL_KEYS] = {0};
 #else
@@ -296,19 +296,19 @@ int main(void) {
         /* USER CODE BEGIN 3 */
 
 #if HARDWARE_KEYS_ENABLED == PED_ENABLED
-        read_keys(nstate);
+        read_keys(nstate_keys);
         read_pedals(nstate_pedals);
 #else
         if (HAL_GetTick() - last_changed_note > note_duration_ms) {
             last_changed_note = HAL_GetTick();
-            memcpy(nstate, melody[melody_ptr], N_HW_KEYS * sizeof(bool));
+            memcpy(nstate_keys, melody[melody_ptr], N_HW_KEYS * sizeof(bool));
             melody_ptr++;
             melody_ptr %= melody_len;
 
             // char log_str[BUFSIZ];
             // ssize_t log_str_ptr = 0;
             // for (size_t isem = 1; isem <= N_HW_KEYS; isem++) {
-            // if (nstate[isem]) {
+            // if (nstate_keys[isem]) {
             // ssize_t to_add = snprintf(log_str + log_str_ptr, BUFSIZ - log_str_ptr, "%s ", note_names[isem]);
             // log_str_ptr += to_add;
             // }
@@ -346,7 +346,7 @@ int main(void) {
         *       char buffer[BUFSIZ] = {0};
         *       size_t bptr         = 0;
         *       for (size_t i = 0; i < N_HW_KEYS; i++) {
-        *           if (nstate[i]) {
+        *           if (nstate_keys[i]) {
         *               size_t to_add = snprintf(buffer + bptr, BUFSIZ, "X");
         *               bptr += to_add;
         *           } else {
@@ -396,16 +396,16 @@ int main(void) {
         // This is the example task
         // midi_example_melody_task();
 
-        midi_player_update(pstate, nstate, pstate_pedals, nstate_pedals);
+        midi_player_update(pstate_keys, nstate_keys, pstate_pedals, nstate_pedals);
 #endif
 
         // play only one note in blocking mode
         // HAL_I2S_Transmit(&hi2s1, (uint16_t*) sample_D2_22kHz_corpo, SAMPLE_D2_22KHZ_CORPO_L, 10000);
 
 #if SOUND_PLAYER_I2S != PED_DISABLED
-        sound_player_routine(pstate, nstate);
+        sound_player_routine(pstate_keys, nstate_keys);
 #endif
-        memcpy(pstate, nstate, N_HW_KEYS * sizeof(bool));  // pstate = nstate;
+        memcpy(pstate_keys, nstate_keys, N_HW_KEYS * sizeof(bool));
         memcpy(pstate_pedals, nstate_pedals, N_HW_PEDAL_KEYS * sizeof(bool));
     }
     /* USER CODE END 3 */

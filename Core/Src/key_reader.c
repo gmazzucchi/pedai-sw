@@ -115,6 +115,6 @@ void read_pedals(bool *S) {
 
     // Sorry, I am a softwarista and I am not able to do wiring
     bool tmp = S[1];
-    S[1] = S[5];
-    S[5] = tmp;
+    S[1]     = S[5];
+    S[5]     = tmp;
 }
