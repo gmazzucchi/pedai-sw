@@ -243,8 +243,10 @@ int main(void) {
     lcd_1602a_write_text("INIT");
 
 #if HW_KEY_ACQUISITION_MODE == HW_KEYS_MAT
-    bool pstate[N_HW_KEYS] = {0};
-    bool nstate[N_HW_KEYS] = {0};
+    bool pstate[N_HW_KEYS]              = {0};
+    bool nstate[N_HW_KEYS]              = {0};
+    bool pstate_pedals[N_HW_PEDAL_KEYS] = {0};
+    bool nstate_pedals[N_HW_PEDAL_KEYS] = {0};
 #else
 #error Not yet implemented
 #endif
@@ -295,6 +297,7 @@ int main(void) {
 
 #if HARDWARE_KEYS_ENABLED == PED_ENABLED
         read_keys(nstate);
+        read_pedals(nstate_pedals);
 #else
         if (HAL_GetTick() - last_changed_note > note_duration_ms) {
             last_changed_note = HAL_GetTick();
@@ -317,6 +320,25 @@ int main(void) {
 #if PED_USB_DEVICE_CLASS == PED_USB_CDC_CLASS
         tud_task();
 
+        // print pedals state
+        static uint32_t last_changed_note = 0;
+        if (HAL_GetTick() - last_changed_note > 200) {
+            last_changed_note   = HAL_GetTick();
+            char buffer[BUFSIZ] = {0};
+            size_t bptr         = 0;
+            for (size_t i = 0; i < N_HW_PEDAL_KEYS; i++) {
+                if (nstate_pedals[i]) {
+                    size_t to_add = snprintf(buffer + bptr, BUFSIZ, "X");
+                    bptr += to_add;
+                } else {
+                    size_t to_add = snprintf(buffer + bptr, BUFSIZ, "0");
+                    bptr += to_add;
+                }
+            }
+            buffer[bptr] = 0;
+            usb_write(buffer);
+        }
+
         /* 
         *   static uint32_t last_sent_keys = 0;
         *   if (HAL_GetTick() - last_sent_keys > 200) {
@@ -337,6 +359,7 @@ int main(void) {
         *   } 
         */
 
+#if 0
 // Experiments with DSP library
 #define N (32)
 
@@ -365,7 +388,7 @@ int main(void) {
             }
             usb_write(log_str);
         }
-
+#endif
         // cdc_example_keep_alive_task();
 #elif PED_USB_DEVICE_CLASS == PED_USB_MIDI_CLASS
         tud_task();
@@ -373,7 +396,7 @@ int main(void) {
         // This is the example task
         // midi_example_melody_task();
 
-        midi_player_update(pstate, nstate);
+        midi_player_update(pstate, nstate, pstate_pedals, nstate_pedals);
 #endif
 
         // play only one note in blocking mode
@@ -383,6 +406,7 @@ int main(void) {
         sound_player_routine(pstate, nstate);
 #endif
         memcpy(pstate, nstate, N_HW_KEYS * sizeof(bool));  // pstate = nstate;
+        memcpy(pstate_pedals, nstate_pedals, N_HW_PEDAL_KEYS * sizeof(bool));
     }
     /* USER CODE END 3 */
 }

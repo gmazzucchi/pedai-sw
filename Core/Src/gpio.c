@@ -49,7 +49,7 @@ void MX_GPIO_Init(void) {
     __HAL_RCC_GPIOB_CLK_ENABLE();
 
     /*Configure GPIO pin Output Level */
-    HAL_GPIO_WritePin(GPIOC, BOARD_LED_Pin | LED_MIDI_Pin | LED_SOUND_Pin, GPIO_PIN_RESET);
+    HAL_GPIO_WritePin(GPIOC, BOARD_LED_Pin | LED_SOUND_Pin, GPIO_PIN_RESET);
 
     /*Configure GPIO pin Output Level */
     HAL_GPIO_WritePin(GPIOA, MUX_C2_Pin | MUX_C1_Pin | MUX_C0_Pin | C6_Pin | C7_Pin, GPIO_PIN_RESET);
@@ -57,12 +57,18 @@ void MX_GPIO_Init(void) {
     /*Configure GPIO pin Output Level */
     HAL_GPIO_WritePin(GPIOB, C0_Pin | C1_Pin | C2_Pin | C3_Pin | C4_Pin | C5_Pin, GPIO_PIN_RESET);
 
-    /*Configure GPIO pins : BOARD_LED_Pin LED_MIDI_Pin LED_SOUND_Pin */
-    GPIO_InitStruct.Pin   = BOARD_LED_Pin | LED_MIDI_Pin | LED_SOUND_Pin;
+    /*Configure GPIO pins : BOARD_LED_Pin LED_SOUND_Pin */
+    GPIO_InitStruct.Pin   = BOARD_LED_Pin | LED_SOUND_Pin;
     GPIO_InitStruct.Mode  = GPIO_MODE_OUTPUT_PP;
     GPIO_InitStruct.Pull  = GPIO_NOPULL;
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
     HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
+
+    /*Configure GPIO pin : C4_PEDAL_Pin */
+    GPIO_InitStruct.Pin  = C4_PEDAL_Pin;
+    GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+    GPIO_InitStruct.Pull = GPIO_PULLUP;
+    HAL_GPIO_Init(C4_PEDAL_GPIO_Port, &GPIO_InitStruct);
 
     /*Configure GPIO pin : USER_BUTTON_Pin */
     GPIO_InitStruct.Pin  = USER_BUTTON_Pin;

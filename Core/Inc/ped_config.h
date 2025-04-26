@@ -44,6 +44,8 @@
 #define N_HW_MAT_COLS (8u)
 #define N_HW_KEYS     (N_HW_MAT_ROWS * N_HW_MAT_COLS)
 
+#define N_HW_PEDAL_KEYS (25U)
+
 // #endif
 
 // prototypes
@@ -77,6 +79,9 @@ uint32_t get_current_time_ms();
 
 #define n_bitnotes    (63)
 #define base_midinote (24)
+
+#define n_pedal_bitnotes    (N_HW_PEDAL_KEYS)
+#define base_pedal_midinote (24)
 
 typedef enum { adc1_r0 = 0, adc1_r1, adc1_mux, adc1_volume, n_adc_channels } adc1_channels_t;
 

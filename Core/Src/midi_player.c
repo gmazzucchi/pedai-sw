@@ -12,7 +12,7 @@ void midi_player_init() {
     tusb_init(BOARD_TUD_RHPORT, &dev_init);
 }
 
-void midi_player_update(bool *pstate, bool *nstate) {
+void midi_player_update(bool *pstate, bool *nstate, bool *pstate_pedals, bool *nstate_pedals) {
     /* 
         // This means only one HAL_Delay(286) at the program start
         static uint32_t start_ms = 0;
@@ -32,6 +32,7 @@ void midi_player_update(bool *pstate, bool *nstate) {
         tud_midi_packet_read(packet);
     }
 
+    // KEYS
     /***
         This is an example of the logic:
         pstate 0110111 // keys before
@@ -61,14 +62,15 @@ void midi_player_update(bool *pstate, bool *nstate) {
         old_notes[inote] = (pstate[inote] ^ keep_notes[inote]) & 1;
     }
 
-    uint8_t const cable_num = 0;  // MIDI jack associated with USB endpoint
-    uint8_t const channel   = 0;  // 0 for channel 1
+    uint8_t const cable_num      = 0;  // MIDI jack associated with USB endpoint
+    uint8_t const channel_keys   = 0;  // 0 for channel 1
+    uint8_t const channel_pedals = 1;  // 1 for channel 2
 
     // release all the old notes
     for (size_t is = 1; is <= n_bitnotes; is++) {
         bool note_is_released = old_notes[is];  // with bitset: (old_notes >> (n_bitnotes - is) & 1);
         if (note_is_released) {
-            uint8_t note_off[3] = {MIDI_NOTE_OFF | channel, is + base_midinote, 0};
+            uint8_t note_off[3] = {MIDI_NOTE_OFF | channel_keys, is + base_midinote, 0};
             tud_midi_stream_write(cable_num, note_off, 3);
         }
     }
@@ -77,7 +79,37 @@ void midi_player_update(bool *pstate, bool *nstate) {
     for (size_t is = 1; is <= n_bitnotes; is++) {
         bool note_is_pressed = new_notes[is];  // with bitset: (new_notes >> (n_bitnotes - is) & 1);
         if (note_is_pressed) {
-            uint8_t note_on[3] = {MIDI_NOTE_ON | channel, is + base_midinote, 127};
+            uint8_t note_on[3] = {MIDI_NOTE_ON | channel_keys, is + base_midinote, 127};
+            tud_midi_stream_write(cable_num, note_on, 3);
+        }
+    }
+
+    // PEDALS
+    bool keep_notes_pedals[N_HW_PEDAL_KEYS];
+    for (size_t inote = 0; inote < N_HW_PEDAL_KEYS; inote++) {
+        keep_notes_pedals[inote] = nstate_pedals[inote] && pstate_pedals[inote];
+    }
+    bool new_notes_pedals[N_HW_PEDAL_KEYS];
+    for (size_t inote = 0; inote < N_HW_PEDAL_KEYS; inote++) {
+        new_notes_pedals[inote] = (nstate_pedals[inote] ^ keep_notes_pedals[inote]) & 1;
+    }
+    bool old_notes_pedals[N_HW_PEDAL_KEYS];
+    for (size_t inote = 0; inote < N_HW_PEDAL_KEYS; inote++) {
+        old_notes_pedals[inote] = (pstate_pedals[inote] ^ keep_notes_pedals[inote]) & 1;
+    }
+    // release all the old pedals
+    for (size_t is = 0; is < N_HW_PEDAL_KEYS; is++) {
+        bool note_is_released = old_notes_pedals[is];
+        if (note_is_released) {
+            uint8_t note_off[3] = {MIDI_NOTE_OFF | channel_pedals, is + base_pedal_midinote, 0};
+            tud_midi_stream_write(cable_num, note_off, 3);
+        }
+    }
+    // press all the new pedals
+    for (size_t is = 0; is < N_HW_PEDAL_KEYS; is++) {
+        bool note_is_pressed = new_notes_pedals[is];
+        if (note_is_pressed) {
+            uint8_t note_on[3] = {MIDI_NOTE_ON | channel_pedals, is + base_pedal_midinote, 127};
             tud_midi_stream_write(cable_num, note_on, 3);
         }
     }

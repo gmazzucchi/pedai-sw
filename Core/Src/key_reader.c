@@ -19,20 +19,6 @@ const static uint16_t mux_c_pins[N_MUX_CONTROL_PINS] = {
     MUX_C2_Pin,
 };
 
-static GPIO_TypeDef *mux_d_ports[N_MUX_DATA_PINS] = {
-    MUX1_DATA_GPIO_Port,
-    MUX2_DATA_GPIO_Port,
-    MUX3_DATA_GPIO_Port,
-    MUX4_DATA_GPIO_Port,
-};
-
-const static uint16_t mux_d_pins[N_MUX_DATA_PINS] = {
-    MUX1_DATA_Pin,
-    MUX2_DATA_Pin,
-    MUX3_DATA_Pin,
-    MUX4_DATA_Pin,
-};
-
 static GPIO_TypeDef *cols_ports[N_HW_MAT_COLS] = {
     C0_GPIO_Port,
     C1_GPIO_Port,
@@ -95,7 +81,6 @@ void init_keys() {
     for (int c = 0; c < N_HW_MAT_COLS; c++) {
         set_matrix_column_pin(c, GPIO_PIN_RESET);
     }
-    // set_matrix_column_pin(0, GPIO_PIN_SET);
 }
 
 void read_keys(bool *S) {
@@ -116,18 +101,20 @@ void read_keys(bool *S) {
     for (int inote = 1; inote <= 8; inote++) {
         S[N_HW_MAT_COLS * N_HW_MAT_ROWS - inote] = 0;
     }
+}
 
-    /***
-     * WITH MULTIPLEXERS
-    */
-    /* 
-        // set_mux_addr(0);
-        // return HAL_GPIO_ReadPin(MUX_D0_GPIO_Port, MUX_D0_Pin);
-        for (int iaddr = 0; iaddr < (1 << N_MUX_CONTROL_PINS); iaddr++) {
-            set_mux_addr(iaddr);
-            if (!HAL_GPIO_ReadPin(MUX_D0_GPIO_Port, MUX_D0_Pin)) {
-                nstate |= 1 << iaddr;
-            }
-        } 
-    */
+void read_pedals(bool *S) {
+    for (int iaddr = 0; iaddr < 6; iaddr++) {
+        set_mux_addr(iaddr);
+        S[0 * 6 + (5 - iaddr)] = !HAL_GPIO_ReadPin(MUX4_DATA_GPIO_Port, MUX4_DATA_Pin);
+        S[1 * 6 + (5 - iaddr)] = !HAL_GPIO_ReadPin(MUX3_DATA_GPIO_Port, MUX3_DATA_Pin);
+        S[2 * 6 + (5 - iaddr)] = !HAL_GPIO_ReadPin(MUX2_DATA_GPIO_Port, MUX2_DATA_Pin);
+        S[3 * 6 + (5 - iaddr)] = !HAL_GPIO_ReadPin(MUX1_DATA_GPIO_Port, MUX1_DATA_Pin);
+    }
+    S[N_HW_PEDAL_KEYS - 1] = !HAL_GPIO_ReadPin(C4_PEDAL_GPIO_Port, C4_PEDAL_Pin);
+
+    // Sorry, I am a softwarista and I am not able to do wiring
+    bool tmp = S[1];
+    S[1] = S[5];
+    S[5] = tmp;
 }

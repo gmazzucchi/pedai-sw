@@ -61,8 +61,8 @@ extern I2S_HandleTypeDef hi2s1;
 /* Private defines -----------------------------------------------------------*/
 #define BOARD_LED_Pin         GPIO_PIN_13
 #define BOARD_LED_GPIO_Port   GPIOC
-#define LED_MIDI_Pin          GPIO_PIN_14
-#define LED_MIDI_GPIO_Port    GPIOC
+#define C4_PEDAL_Pin          GPIO_PIN_14
+#define C4_PEDAL_GPIO_Port    GPIOC
 #define LED_SOUND_Pin         GPIO_PIN_15
 #define LED_SOUND_GPIO_Port   GPIOC
 #define USER_BUTTON_Pin       GPIO_PIN_0

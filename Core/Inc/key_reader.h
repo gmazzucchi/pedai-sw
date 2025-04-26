@@ -5,5 +5,6 @@
 
 void init_keys();
 void read_keys(bool *S);
+void read_pedals(bool *S);
 
 #endif  // KEY_READER_H
