@@ -1,0 +1,18 @@
+*.o
+*.elf
+*.bin
+*.hex
+*.map
+.mxproject
+*.out
+
+**/build/
+**/Backup/*
+
+**/.vscode/*
+.stm32env
+**/__pycache__/**
+binaries/**
+
+# probably not correct
+docs/inverse_formulas_ammo_compression.py
