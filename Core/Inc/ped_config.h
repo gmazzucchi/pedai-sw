@@ -25,7 +25,7 @@
 
 #define LCD1602_ENABLED (PED_DISABLED)
 
-#define PED_PHASE_VOCODER (PED_ENABLED)
+#define PED_PHASE_VOCODER (PED_DISABLED)
 
 #define SCALE_AMPLITUDE_AFTER_ADDING (PED_DISABLED)
 
@@ -47,7 +47,7 @@
 uint32_t get_current_time_ms();
 
 #define n_bitnotes    (63)
-#define base_midinote (24)
+#define base_midinote (36)
 
 #define n_pedal_bitnotes    (N_HW_PEDAL_KEYS)
 #define base_pedal_midinote (24)

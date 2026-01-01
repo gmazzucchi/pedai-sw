@@ -402,7 +402,7 @@ int main(void) {
         // play only one note in blocking mode
         // HAL_I2S_Transmit(&hi2s1, (uint16_t*) sample_D2_22kHz_corpo, SAMPLE_D2_22KHZ_CORPO_L, 10000);
 
-#if SOUND_PLAYER_I2S != PED_DISABLED
+#if SOUND_PLAYER_I2S == PED_ENABLED
         sound_player_routine(pstate_keys, nstate_keys);
 #endif
         memcpy(pstate_keys, nstate_keys, N_HW_KEYS * sizeof(bool));
@@ -467,7 +467,7 @@ void Error_Handler(void) {
     /* User can add his own implementation to report the HAL error return state */
 
 #if PED_USB_DEVICE_CLASS == PED_USB_CDC_CLASS
-#warning[JUST A WARNING] Interrupts are not disabled in Error_Handler() to allow logging
+#warning [JUST A WARNING] Interrupts are not disabled in Error_Handler() to allow logging
     // __disable_irq();
     static uint32_t last_msg_sent = 0;
     while (1) {
@@ -486,7 +486,6 @@ void Error_Handler(void) {
 #endif
     /* USER CODE END Error_Handler_Debug */
 }
-
 #ifdef USE_FULL_ASSERT
 /**
   * @brief  Reports the name of the source file and the source line number

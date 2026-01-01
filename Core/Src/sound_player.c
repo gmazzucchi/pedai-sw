@@ -406,6 +406,7 @@ void sound_player_init(void) {
     */
 }
 
+#if SOUND_PLAYER_I2S == PED_ENABLED
 void sound_player_routine(bool *pstate_keys, bool *nstate_keys) {
     bool zero_buffer[N_HW_KEYS] = {0};
 
@@ -470,3 +471,4 @@ void sound_player_routine(bool *pstate_keys, bool *nstate_keys) {
         active_b                     = !active_b;
     }
 }
+#endif
