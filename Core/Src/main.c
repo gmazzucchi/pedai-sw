@@ -402,8 +402,8 @@ int main(void) {
         // play only one note in blocking mode
         // HAL_I2S_Transmit(&hi2s1, (uint16_t*) sample_D2_22kHz_corpo, SAMPLE_D2_22KHZ_CORPO_L, 10000);
 
-#if SOUND_PLAYER_I2S == PED_ENABLED
-        sound_player_routine(pstate_keys, nstate_keys);
+#if SOUND_PLAYER_I2S != PED_DISABLED
+        sound_player_routine(pstate_keys, nstate_keys, pstate_pedals, nstate_pedals);
 #endif
         memcpy(pstate_keys, nstate_keys, N_HW_KEYS * sizeof(bool));
         memcpy(pstate_pedals, nstate_pedals, N_HW_PEDAL_KEYS * sizeof(bool));

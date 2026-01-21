@@ -5,6 +5,7 @@
 #include "main.h"
 #include "samples/sample_22kHz_D2.h"
 
+#include <inttypes.h>
 #include <math.h>
 #include <stdio.h>
 #include <string.h>
@@ -23,6 +24,10 @@ static int16_t *sound_data_db[2]               = {buffer0_sai, buffer1_sai};
 static size_t sound_data_db_len[2]             = {0, 0};
 static bool active_b                           = 0;
 static size_t note_buffer_position[n_bitnotes] = {0};
+
+const double FREQUENCY_TABLE[100] = {
+    16.35, 17.32222, 18.35225, 19.44354, 20.59971, 21.82463, 23.12239, 24.49732, 25.95401, 27.49731, 29.13239, 30.86469, 32.7, 34.64444, 36.70451, 38.88707, 41.19942, 43.64926, 46.24478, 48.99464, 51.90801, 54.99463, 58.26478, 61.72938, 65.4, 69.28889, 73.40902, 77.77415, 82.39884, 87.29853, 92.48957, 97.98928, 103.81603, 109.98925, 116.52955, 123.45876, 130.8, 138.57777, 146.81804, 155.54829, 164.79767, 174.59705, 184.97913, 195.97857, 207.63206, 219.9785, 233.0591, 246.91752, 261.6, 277.15555, 293.63607, 311.09658, 329.59535, 349.19411, 369.95827, 391.95713, 415.26412, 439.957, 466.11821, 493.83504, 523.2, 554.31109, 587.27214, 622.19316, 659.19069, 698.38821, 739.91654, 783.91426, 830.52823, 879.91401, 932.23642, 987.67008, 1046.4, 1108.62218, 1174.54429, 1244.38633, 1318.38139, 1396.77642, 1479.83307, 1567.82853, 1661.05646, 1759.82802, 1864.47284, 1975.34016, 2092.8, 2217.24436, 2349.08857, 2488.77265, 2636.76277, 2793.55285, 2959.66614, 3135.65705, 3322.11292, 3519.65604, 3728.94567, 3950.68032, 4185.6, 4434.48873, 4698.17715, 4977.5453
+};
 
 inline size_t min(size_t x, size_t y) {
     return (x > y) ? (y) : (x);
@@ -395,19 +400,79 @@ size_t compose_note(bool *nstate_keys, bool *pstate_keys, int16_t *current_note,
     return current_note_max_len;
 }
 
-#endif
+#elif SOUND_PLAYER_I2S == SOUND_PLAYER_ADDSYNTH
 
-void sound_player_init(void) {
-    /* 
-        // actually not needed
-        memset(tmp_adder, 0, MAX_NOTE_LEN * sizeof(int16_t));
-        memset(buffer0_sai, 0, MAX_NOTE_LEN * sizeof(int16_t));
-        memset(buffer1_sai, 0, MAX_NOTE_LEN * sizeof(int16_t)); 
-    */
+// lontanamente simile a una doppia ancia
+const double ORGAN_PRESET_1[] = {0.1, 0.03, 0.05, 0.04, 0.05, 0.01, 0.015, 0.02, 0.02, 0.01, 0.02};
+// un principale dolce    
+const double ORGAN_PRESET_2[] = {0.2, 0.1, 0, 0, 0.05, 0.1, 0.03, 0.02, 0.01};
+// registro dolce
+// amps2 = [0.5, 0.5, 0.5, 0.5, 0.5, 0.1, 0.1, 0.1, 0.1]
+// un misto tra un principale e un ripieno
+const double ORGAN_PRESET_3[] = {0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5};
+
+arm_status compute_ifft(q15_t *current_note, const size_t note_fft_len, const size_t note_fft_sample_len) {
+    arm_cfft_instance_q15 fft_instance;
+    arm_status status = arm_cfft_init_q15(&fft_instance, note_fft_len);
+    if (status != ARM_MATH_SUCCESS) return status;
+    arm_cfft_q15(&fft_instance, current_note, 1, 1);
+    return ARM_MATH_SUCCESS;
 }
 
-#if SOUND_PLAYER_I2S == PED_ENABLED
-void sound_player_routine(bool *pstate_keys, bool *nstate_keys) {
+void add_frequency_components_for_a_note(q15_t* spec, const size_t note_fft_len, const double* organ_preset, const size_t kidx) {
+    for (size_t preset_idx = 0; preset_idx < (sizeof(organ_preset)/sizeof(organ_preset[0])); organ_preset++) {
+        double f = FREQUENCY_TABLE[kidx] * (preset_idx + 1);
+        int bin_idx = (int)(f * note_fft_len / 22000);
+        double A = ORGAN_PRESET_1[preset_idx] / 2.0;
+        // TODO: This is surely WRONG!!!
+        spec[bin_idx] += A;
+        spec[-bin_idx] += A;
+    }
+}
+
+size_t compose_note(bool *pstate_keys, bool *nstate_keys, bool *pstate_pedals, bool *nstate_pedals, int16_t* current_note, size_t current_note_len) {
+
+    const size_t note_fft_len = 4096U;
+    const size_t note_fft_sample_len = note_fft_len * 2;
+    
+    if (current_note_len < note_fft_sample_len) {
+        // TODO: ERROR
+        return 0;
+    }
+    memset(current_note, 0, current_note_len * sizeof(note_fft_sample_len));
+    
+    for (size_t kidx = 0; kidx < N_HW_KEYS; kidx++) {
+        if (!nstate_keys) continue;
+        add_frequency_components_for_a_note(current_note, note_fft_len, ORGAN_PRESET_3, kidx);
+    }
+
+    for (size_t pidx = 0; pidx < N_HW_PEDAL_KEYS; pidx++) {
+        if (!nstate_pedals) continue;
+        add_frequency_components_for_a_note(current_note, note_fft_len, ORGAN_PRESET_3, pidx);
+    }
+    compute_ifft(current_note, note_fft_len, note_fft_sample_len);
+    
+
+    // TODO: normalization
+#if 0
+    q15_t maxValue = 0;
+    size_t maxIdx;
+    arm_max_q15(current_note, current_note_len, &maxValue, &maxIdx);
+    arm_scale_q15(current_note, maxValue, 0, current_note, current_note_len);
+#endif
+}
+
+#endif
+
+#if SOUND_PLAYER_I2S != PED_DISABLED
+
+void sound_player_init(void) {
+    memset(tmp_adder, 0, sizeof(tmp_adder));
+    memset(buffer0_sai, 0, sizeof(buffer0_sai));
+    memset(buffer1_sai, 0, sizeof(buffer1_sai));
+}
+
+void sound_player_routine(bool *pstate_keys, bool *nstate_keys, bool *pstate_pedals, bool *nstate_pedals) {
     bool zero_buffer[N_HW_KEYS] = {0};
 
     if (!has_to_play_note && sai_is_transmitting) {
@@ -452,11 +517,12 @@ void sound_player_routine(bool *pstate_keys, bool *nstate_keys) {
     }
     // else if (pstate_keys == 0b1111 && nstate_keys != 0b1111) { // Covered in the last case
     // }
-    else if (memcmp(pstate_keys, zero_buffer, N_HW_KEYS) != 0 && memcmp(nstate_keys, zero_buffer, N_HW_KEYS) == 0) {
+    else if ((memcmp(pstate_keys, zero_buffer, N_HW_KEYS) != 0 && memcmp(nstate_keys, zero_buffer, N_HW_KEYS) == 0) &&
+             (memcmp(pstate_pedals, zero_buffer, N_HW_PEDAL_KEYS) != 0 && memcmp(nstate_pedals, zero_buffer, N_HW_PEDAL_KEYS) == 0)) {
         // p to np
         // stop at the next iteration
         has_to_play_note = false;
-    } else if (memcmp(nstate_keys, pstate_keys, N_HW_KEYS) == 0) {
+    } else if ((memcmp(nstate_keys, pstate_keys, N_HW_KEYS) == 0) && memcmp(nstate_pedals, pstate_pedals, N_HW_PEDAL_KEYS)) {
         // p same note
         // continue with the same buffer
         has_to_play_note = true;
@@ -467,8 +533,9 @@ void sound_player_routine(bool *pstate_keys, bool *nstate_keys) {
         // construct the note in the inactive buffer and then swap the buffer at the next iteration
         // has_to_play_note                         = true;
         has_to_change_note           = true;
-        sound_data_db_len[!active_b] = compose_note(nstate_keys, pstate_keys, sound_data_db[!active_b], MAX_NOTE_LEN);
+        sound_data_db_len[!active_b] = compose_note(pstate_keys, nstate_keys, pstate_pedals, nstate_pedals, sound_data_db[!active_b], MAX_NOTE_LEN);
         active_b                     = !active_b;
     }
 }
+
 #endif
