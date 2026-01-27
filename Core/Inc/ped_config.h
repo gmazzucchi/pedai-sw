@@ -19,7 +19,7 @@
 #define PED_USB_NONE_CLASS   (0U)
 #define PED_USB_CDC_CLASS    (2U)
 #define PED_USB_MIDI_CLASS   (3U)
-#define PED_USB_DEVICE_CLASS (PED_USB_MIDI_CLASS)
+#define PED_USB_DEVICE_CLASS (PED_USB_NONE_CLASS)
 
 #define AUDIO_FREQUENCY_HZ (22000.0)   // check "Real Audio Frequency" in CubeMX
 #define BASE_FREQUENCY     (65.40639)  // frequency of the lowest note
