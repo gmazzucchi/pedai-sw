@@ -16,3 +16,7 @@ binaries/**
 
 # probably not correct
 docs/inverse_formulas_ammo_compression.py
+
+
+**/Binaries/*.out
+

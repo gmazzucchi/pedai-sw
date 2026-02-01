@@ -402,13 +402,13 @@ size_t compose_note(bool *nstate_keys, bool *pstate_keys, int16_t *current_note,
 
 #elif SOUND_PLAYER_I2S == SOUND_PLAYER_ADDSYNTH
 
-// lontanamente simile a una doppia ancia
+// similar to a double-reed instrument
 const double ORGAN_PRESET_1[] = {0.1, 0.03, 0.05, 0.04, 0.05, 0.01, 0.015, 0.02, 0.02, 0.01, 0.02};
-// un principale dolce    
+// a dolce principal register
 const double ORGAN_PRESET_2[] = {0.2, 0.1, 0, 0, 0.05, 0.1, 0.03, 0.02, 0.01};
-// registro dolce
+// soft register
 // amps2 = [0.5, 0.5, 0.5, 0.5, 0.5, 0.1, 0.1, 0.1, 0.1]
-// un misto tra un principale e un ripieno
+// mixture - princial
 const double ORGAN_PRESET_3[] = {0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5};
 
 arm_status compute_ifft(q15_t *current_note, const size_t note_fft_len, const size_t note_fft_sample_len) {
@@ -430,8 +430,34 @@ void add_frequency_components_for_a_note(q15_t* spec, const size_t note_fft_len,
     }
 }
 
-size_t compose_note(bool *pstate_keys, bool *nstate_keys, bool *pstate_pedals, bool *nstate_pedals, int16_t* current_note, size_t current_note_len) {
+size_t sample_sinusoid(bool *nstate_keys, bool *nstate_pedals, int16_t* current_note, size_t current_note_len) {
+    float f0 = 221;
+    float fs = AUDIO_FREQUENCY_HZ;
+    float period = fs / f0;
+    for (size_t is = 0; is < current_note_len; is++) {
+        
+        // TODO: fix this, this is surely wrong
+        q15_t x = (q15_t)((is / (2.0f * PI)) * 32768.0f);   
+        current_note[is] = arm_sin_q15(x);
+    }
+    return current_note_len;
+}
 
+size_t compose_note(bool *pstate_keys, bool *nstate_keys, bool *pstate_pedals, bool *nstate_pedals, int16_t* current_note, size_t current_note_len) {
+    // bool should_key_play[N_HW_KEYS];
+    // bool should_pedal_play[N_HW_PEDAL_KEYS];
+    // for (size_t ikey = 0; ikey < N_HW_KEYS; ikey++) {
+    //     should_key_play[ikey] = pstate_keys[ikey] || nstate_keys[ikey];
+    // }
+
+    // no, ok. if we look only at nstate we should get the notes to play in a specific moment
+    
+#if 1
+/**
+ * To test the sound player mechanism, first compose a sample sinusoid in function of the key states...
+ */
+    return sample_sinusoid(nstate_keys, nstate_pedals, current_note, current_note_len);
+#endif
     const size_t note_fft_len = 4096U;
     const size_t note_fft_sample_len = note_fft_len * 2;
     
