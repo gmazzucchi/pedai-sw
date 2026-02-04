@@ -1,4 +1,5 @@
 #include "wavegen.h"
+#include "organ_presets.h"
 
 const static double FREQUENCY_TABLE[100] = {
     16.35, 17.32222, 18.35225, 19.44354, 20.59971, 21.82463, 23.12239, 24.49732, 25.95401, 27.49731, 29.13239, 30.86469, 32.7, 34.64444, 36.70451, 38.88707, 41.19942, 43.64926, 46.24478, 48.99464, 51.90801, 54.99463, 58.26478, 61.72938, 65.4, 69.28889, 73.40902, 77.77415, 82.39884, 87.29853, 92.48957, 97.98928, 103.81603, 109.98925, 116.52955, 123.45876, 130.8, 138.57777, 146.81804, 155.54829, 164.79767, 174.59705, 184.97913, 195.97857, 207.63206, 219.9785, 233.0591, 246.91752, 261.6, 277.15555, 293.63607, 311.09658, 329.59535, 349.19411, 369.95827, 391.95713, 415.26412, 439.957, 466.11821, 493.83504, 523.2, 554.31109, 587.27214, 622.19316, 659.19069, 698.38821, 739.91654, 783.91426, 830.52823, 879.91401, 932.23642, 987.67008, 1046.4, 1108.62218, 1174.54429, 1244.38633, 1318.38139, 1396.77642, 1479.83307, 1567.82853, 1661.05646, 1759.82802, 1864.47284, 1975.34016, 2092.8, 2217.24436, 2349.08857, 2488.77265, 2636.76277, 2793.55285, 2959.66614, 3135.65705, 3322.11292, 3519.65604, 3728.94567, 3950.68032, 4185.6, 4434.48873, 4698.17715, 4977.5453
@@ -358,22 +359,6 @@ size_t compose_note(bool *nstate_keys, bool *pstate_keys, int16_t *current_note,
 
 #elif SOUND_PLAYER_I2S == SOUND_PLAYER_ADDSYNTH
 
-// similar to a double-reed instrument
-const static double ORGAN_PRESET_1[] = {0.1, 0.03, 0.05, 0.04, 0.05, 0.01, 0.015, 0.02, 0.02, 0.01, 0.02};
-const static size_t ORGAN_PRESET_1_SIZE = sizeof(ORGAN_PRESET_1) / sizeof(ORGAN_PRESET_1[0]);
-// a dolce principal register
-const static double ORGAN_PRESET_2[] = {0.2, 0.1, 0, 0, 0.05, 0.1, 0.03, 0.02, 0.01};
-const static size_t ORGAN_PRESET_2_SIZE = sizeof(ORGAN_PRESET_2) / sizeof(ORGAN_PRESET_2[0]);
-// soft register
-// amps2 = [0.5, 0.5, 0.5, 0.5, 0.5, 0.1, 0.1, 0.1, 0.1]
-// mixture - principal
-const static double ORGAN_PRESET_3[] = {0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5};
-const static size_t ORGAN_PRESET_3_SIZE = sizeof(ORGAN_PRESET_3) / sizeof(ORGAN_PRESET_3[0]);
-
-// sum of the previous three presets
-const static double ORGAN_PRESET_4[] = {0.8, 0.63, 0.55, 0.54, 0.6, 0.61, 0.55, 0.54, 0.53, 0.51, 0.52, 0.5, 0.5, 0.5, 0.5};
-const static size_t ORGAN_PRESET_4_SIZE = sizeof(ORGAN_PRESET_4) / sizeof(ORGAN_PRESET_4[0]);
-
 arm_status compute_ifft(q15_t *current_note, const size_t note_fft_len) {
     arm_cfft_instance_q15 fft_instance;
     arm_status status = arm_cfft_init_q15(&fft_instance, note_fft_len);
@@ -445,7 +430,7 @@ size_t compose_note(bool *pstate_keys, bool *nstate_keys, bool *pstate_pedals, b
     
     for (size_t kidx = 0; kidx < N_HW_KEYS; kidx++) {
         if (!nstate_keys[kidx]) continue;
-        add_frequency_components_for_a_note(current_note, note_fft_len, ORGAN_PRESET_2, ORGAN_PRESET_2_SIZE, kidx);
+        add_frequency_components_for_a_note(current_note, note_fft_len, ORGAN_PRESET_3, ORGAN_PRESET_3_SIZE, kidx);
     }
 
     for (size_t pidx = 0; pidx < N_HW_PEDAL_KEYS; pidx++) {

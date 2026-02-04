@@ -157,6 +157,7 @@ Core/Src/lcd1602a.c \
 Core/Src/main.c \
 Core/Src/midi_player.c \
 Core/Src/msc_disk.c \
+Core/Src/organ_presets.c \
 Core/Src/ped_types.c \
 Core/Src/samples/sample_22kHz_D2.c \
 Core/Src/sound_player.c \
@@ -169,10 +170,12 @@ Core/Src/usb_descriptors_cdc.c \
 Core/Src/usb_descriptors_midi.c \
 Core/Src/usb_otg.c \
 Core/Src/wavegen.c \
-Drivers/CMSIS/DSP/Source/BasicMathFunctions/arm_add_q15.c \
-Drivers/CMSIS/DSP/Source/BasicMathFunctions/arm_shift_q15.c \
+Drivers/CMSIS/DSP/Source/BasicMathFunctions/BasicMathFunctions.c \
 Drivers/CMSIS/DSP/Source/CommonTables/CommonTables.c \
+Drivers/CMSIS/DSP/Source/ComplexMathFunctions/ComplexMathFunctions.c \
 Drivers/CMSIS/DSP/Source/FastMathFunctions/FastMathFunctions.c \
+Drivers/CMSIS/DSP/Source/MatrixFunctions/MatrixFunctions.c \
+Drivers/CMSIS/DSP/Source/StatisticsFunctions/StatisticsFunctions.c \
 Drivers/CMSIS/DSP/Source/TransformFunctions/TransformFunctions.c \
 Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal.c \
 Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_cortex.c \

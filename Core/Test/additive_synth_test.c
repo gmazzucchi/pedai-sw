@@ -18,7 +18,8 @@ int main(void)
     nstate_keys[35] = 1;
     nstate_keys[40] = 1;
     nstate_keys[44] = 1;
-    nstate_keys[50] = 1;
+    nstate_keys[47] = 1;
+    nstate_keys[52] = 1;
 #define MAX_CURRENT_NOTE (65536)
     q15_t current_note[MAX_CURRENT_NOTE];
     const size_t current_note_len = MAX_CURRENT_NOTE;
