@@ -168,6 +168,7 @@ Core/Src/system_stm32f4xx.c \
 Core/Src/usb_descriptors_cdc.c \
 Core/Src/usb_descriptors_midi.c \
 Core/Src/usb_otg.c \
+Core/Src/wavegen.c \
 Drivers/CMSIS/DSP/Source/BasicMathFunctions/arm_add_q15.c \
 Drivers/CMSIS/DSP/Source/BasicMathFunctions/arm_shift_q15.c \
 Drivers/CMSIS/DSP/Source/CommonTables/CommonTables.c \
