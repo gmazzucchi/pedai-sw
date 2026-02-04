@@ -21,4 +21,6 @@ docs/inverse_formulas_ammo_compression.py
 **/Binaries/*.out
 **.tmp
 **.wav
+.stm32env
+
 
