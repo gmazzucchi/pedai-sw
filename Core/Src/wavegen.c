@@ -399,8 +399,10 @@ void add_frequency_components_for_a_note(q15_t* spec, const size_t note_fft_len,
         spec[2*(N-bin) + 1] += 0; // Symmetric imaginary
     }
 }
+#if 0
 /**
  * TODO: to fix, this is broken
+ */
 size_t sample_sinusoid(bool *nstate_keys, bool *nstate_pedals, q15_t* current_note, size_t current_note_len) {
     float f0 = 221;
     float fs = AUDIO_FREQUENCY_HZ;
@@ -412,14 +414,14 @@ size_t sample_sinusoid(bool *nstate_keys, bool *nstate_pedals, q15_t* current_no
     }
     return current_note_len;
 }
-*/
+#endif
 
 size_t compose_note(bool *pstate_keys, bool *nstate_keys, bool *pstate_pedals, bool *nstate_pedals, q15_t* current_note, size_t max_current_note_len) {
 #if 0
 /**
  * To test the sound player mechanism, first compose a sample sinusoid in function of the key states...
  */
-    return sample_sinusoid(nstate_keys, nstate_pedals, current_note, current_note_len);
+    return sample_sinusoid(nstate_keys, nstate_pedals, current_note, max_current_note_len);
 #endif
     const size_t note_fft_len = 4096U;
     

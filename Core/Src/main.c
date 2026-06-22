@@ -286,6 +286,17 @@ int main(void) {
     // As requestes by the MIDI example
     HAL_Delay(286);
 
+#define data_size (4096U)
+    int16_t data[data_size];
+    double frequenza_la = 442.0;
+    for (size_t i = 0; i < data_size; i++) {
+        data[i] = (int16_t) (5000.0 * sin(AUDIO_FREQUENCY_HZ / frequenza_la * 2.0 * PI));
+    }
+    
+    while (1) {
+        HAL_I2S_Transmit(&hi2s1, data, data_size, 20000);
+    }
+
     /* USER CODE END 2 */
 
     /* Infinite loop */
